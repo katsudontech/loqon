@@ -379,7 +379,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             </div>
 
             {/* PDFビューア */}
-            <div className="w-full h-[600px]">
+            <div className="w-full">
                 <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
             </div>
 

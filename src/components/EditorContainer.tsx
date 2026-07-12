@@ -80,7 +80,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
             </button>
 
             {/* PDFビューア */}
-            <div className="w-full h-[600px] bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative">
+            <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative">
                 <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
             </div>
 
