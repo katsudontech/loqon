@@ -382,7 +382,29 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             <div className="w-full h-[600px]">
                 <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
             </div>
-            
+
+            {/* スマホなどでPDFを読んだまま切り替えられるように下部にもボタンを配置 */}
+            {mode === 'part' && markers.length > 0 && (
+                <div className="w-full flex justify-between items-center bg-indigo-950/30 border border-indigo-900/50 p-4 rounded-xl shadow-lg mb-8">
+                    <button
+                        onClick={() => handleShiftPart(-1)}
+                        disabled={startMarkerIdx <= 0}
+                        className="px-4 py-3 sm:px-6 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        ◀ 前のパート
+                    </button>
+                    <span className="text-zinc-400 font-medium text-xs sm:text-sm">
+                        パート移動
+                    </span>
+                    <button
+                        onClick={() => handleShiftPart(1)}
+                        disabled={endMarkerIdx >= markers.length - 1}
+                        className="px-4 py-3 sm:px-6 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        次のパート ▶
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
