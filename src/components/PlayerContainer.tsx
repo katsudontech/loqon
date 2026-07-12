@@ -24,17 +24,17 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     const { cachedUrl: localPdfUrl, isCaching: isPdfCaching } = useCachedMedia(pdfUrl)
 
     const { audioRef, ...audioState } = useAudioPlayer()
-    
+
     // モード管理: 'full' = 全体再生, 'part' = パート練習
     const [mode, setMode] = useState<'full' | 'part'>('part')
-    
+
     // PDFの現在ページ
     const [currentPage, setCurrentPage] = useState(1)
-    
+
     // パート練習時の開始マーカーと終了マーカーのインデックス
     const [startMarkerIdx, setStartMarkerIdx] = useState(0)
     const [endMarkerIdx, setEndMarkerIdx] = useState(0)
-    
+
     // リードイン（5秒前再生）がオンになっているかどうか
     const [isLeadinEnabled, setIsLeadinEnabled] = useState(false)
 
@@ -56,7 +56,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                 break; // 時間順に並んでいる前提なので、超えたらそこで終了
             }
         }
-        
+
         if (currentPage !== activePage) {
             setCurrentPage(activePage)
         }
@@ -69,7 +69,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
 
         const startMarker = markers[startMarkerIdx]
         const endMarker = markers[endMarkerIdx]
-        
+
         if (!startMarker || !endMarker) return;
 
         // 再生位置が「終了位置」に達したら、「開始位置」へ戻る（ループ）
@@ -77,10 +77,10 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
         const loopStart = customLoopA !== null ? customLoopA : startMarker.time;
 
         if (audioState.isPlaying && audioState.currentTime >= loopEnd) {
-             if (audioRef.current) {
-                 const targetTime = isLeadinEnabled ? Math.max(0, loopStart - 5) : loopStart;
-                 audioRef.current.currentTime = targetTime;
-             }
+            if (audioRef.current) {
+                const targetTime = isLeadinEnabled ? Math.max(0, loopStart - 5) : loopStart;
+                audioRef.current.currentTime = targetTime;
+            }
         }
     }, [audioState.currentTime, audioState.isPlaying, mode, markers, startMarkerIdx, endMarkerIdx, isLeadinEnabled, customLoopA, customLoopB, audioRef])
 
@@ -132,13 +132,13 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     const handleShiftPart = (direction: -1 | 1) => {
         const newStart = startMarkerIdx + direction;
         const newEnd = endMarkerIdx + direction;
-        
+
         if (newStart >= 0 && newEnd < markers.length) {
             setStartMarkerIdx(newStart);
             setEndMarkerIdx(newEnd);
             setCustomLoopA(null);
             setCustomLoopB(null);
-            
+
             // シフトしたら自動的に新しいパートの先頭に飛ぶ
             if (audioRef.current) {
                 const targetTime = isLeadinEnabled ? Math.max(0, markers[newStart].time - 5) : markers[newStart].time;
@@ -163,12 +163,12 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             if (mode === 'part' && audioRef.current) {
                 const startMarker = markers[startMarkerIdx];
                 if (!startMarker) return;
-                
+
                 const loopStart = customLoopA !== null ? customLoopA : startMarker.time;
                 const targetTime = isLeadinEnabled ? Math.max(0, loopStart - 5) : loopStart;
-                
+
                 const currentAudioTime = audioRef.current.currentTime;
-                
+
                 // 3秒以上進んでいれば先頭に戻る、そうでなければ前パートへ
                 if (currentAudioTime > targetTime + 3) {
                     audioRef.current.currentTime = targetTime;
@@ -182,7 +182,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             navigator.mediaSession.setActionHandler('nexttrack', null);
             navigator.mediaSession.setActionHandler('previoustrack', null);
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, markers, startMarkerIdx, endMarkerIdx, customLoopA, isLeadinEnabled, audioRef]);
 
     // ===== シークバーの表示計算 =====
@@ -196,7 +196,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
         if (startMarker && endMarker) {
             const partStart = isLeadinEnabled ? Math.max(0, startMarker.time - 5) : startMarker.time;
             const partEnd = Math.min(endMarker.end_time, audioState.duration || 99999);
-            
+
             displayDuration = Math.max(0, partEnd - partStart);
             displayCurrentTime = Math.max(0, Math.min(audioState.currentTime - partStart, displayDuration));
             displaySeekTo = (time: number) => {
@@ -247,7 +247,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                     <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
                         <div className="flex-1 flex items-center gap-2 sm:gap-3 w-full bg-zinc-900 p-2 sm:p-3 rounded-xl border border-zinc-800">
                             <span className="text-zinc-400 text-xs sm:text-sm whitespace-nowrap">開始:</span>
-                            <select 
+                            <select
                                 value={startMarkerIdx}
                                 onChange={(e) => {
                                     const newStart = Number(e.target.value)
@@ -267,7 +267,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                         <span className="text-zinc-500 font-bold text-sm sm:text-base">〜</span>
                         <div className="flex-1 flex items-center gap-2 sm:gap-3 w-full bg-zinc-900 p-2 sm:p-3 rounded-xl border border-zinc-800">
                             <span className="text-zinc-400 text-xs sm:text-sm whitespace-nowrap">終了:</span>
-                            <select 
+                            <select
                                 value={endMarkerIdx}
                                 onChange={(e) => {
                                     const newEnd = Number(e.target.value)
@@ -296,11 +296,10 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                 }
                                 setCustomLoopA(audioState.currentTime)
                             }}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${
-                                customLoopA !== null 
-                                ? 'bg-indigo-600 text-white border-indigo-500' 
-                                : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'
-                            }`}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${customLoopA !== null
+                                    ? 'bg-indigo-600 text-white border-indigo-500'
+                                    : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'
+                                }`}
                         >
                             A: {customLoopA !== null ? `${customLoopA.toFixed(1)}s` : '開始位置を設定'}
                         </button>
@@ -311,11 +310,10 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                 }
                                 setCustomLoopB(audioState.currentTime)
                             }}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${
-                                customLoopB !== null 
-                                ? 'bg-indigo-600 text-white border-indigo-500' 
-                                : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'
-                            }`}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${customLoopB !== null
+                                    ? 'bg-indigo-600 text-white border-indigo-500'
+                                    : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'
+                                }`}
                         >
                             B: {customLoopB !== null ? `${customLoopB.toFixed(1)}s` : '終了位置を設定'}
                         </button>
@@ -338,32 +336,30 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                         {markers.length > 0 && (
                             <button
                                 onClick={() => setMode(mode === 'part' ? 'full' : 'part')}
-                                className={`flex-1 sm:flex-none px-3 py-2 text-xs font-bold rounded-lg border transition-colors ${
-                                    mode === 'part'
-                                    ? 'bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 border-indigo-700'
-                                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
-                                }`}
+                                className={`flex-1 sm:flex-none px-3 py-2 text-xs font-bold rounded-lg border transition-colors ${mode === 'part'
+                                        ? 'bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 border-indigo-700'
+                                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
+                                    }`}
                             >
                                 {mode === 'part' ? '🎯 パートモード' : '🎵 全体モード'}
                             </button>
                         )}
                         <button
                             onClick={handleLeadinToggle}
-                            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border ${
-                                isLeadinEnabled 
-                                ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-500/30' 
-                                : 'bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border-zinc-700'
-                            }`}
+                            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border ${isLeadinEnabled
+                                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-500/30'
+                                    : 'bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border-zinc-700'
+                                }`}
                         >
-                            <span>⏪</span> {isLeadinEnabled ? 'リードイン ON' : 'リードイン OFF (5秒前)'}
+                            <span>⏪</span> {isLeadinEnabled ? '5秒前再生 ON' : '5秒前再生 OFF'}
                         </button>
                     </div>
                     <div className="text-zinc-400 text-sm self-end sm:self-auto">
                         現在: <span className="text-white font-bold text-lg">Page {currentPage}</span>
                     </div>
                 </div>
-                <AudioControls 
-                    {...audioState} 
+                <AudioControls
+                    {...audioState}
                     currentTime={displayCurrentTime}
                     duration={displayDuration}
                     seekTo={displaySeekTo}
