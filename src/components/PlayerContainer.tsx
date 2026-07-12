@@ -26,7 +26,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     const { audioRef, ...audioState } = useAudioPlayer()
     
     // モード管理: 'full' = 全体再生, 'part' = パート練習
-    const [mode, setMode] = useState<'full' | 'part'>('full')
+    const [mode, setMode] = useState<'full' | 'part'>('part')
     
     // PDFの現在ページ
     const [currentPage, setCurrentPage] = useState(1)
@@ -218,29 +218,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                 </div>
             )}
 
-            {/* モード切替タブ */}
-            <div className="bg-zinc-900 p-1 rounded-xl flex w-full max-w-sm mx-auto shadow-lg border border-zinc-800">
-                <button
-                    onClick={() => setMode('full')}
-                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
-                        mode === 'full' 
-                        ? 'bg-zinc-800 text-white shadow-md' 
-                        : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                >
-                    全体再生モード
-                </button>
-                <button
-                    onClick={() => setMode('part')}
-                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
-                        mode === 'part' 
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/50' 
-                        : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                >
-                    パート練習モード
-                </button>
-            </div>
+
 
             {/* パート練習モード専用のコントロールパネル */}
             {mode === 'part' && markers.length > 0 && (
@@ -309,7 +287,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                     </div>
 
                     {/* さらに細かく指定するカスタムA-Bループ */}
-                    <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center gap-3">
+                    <div className="mt-4 sm:mt-6 flex flex-row flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
                         <span className="text-indigo-400 text-xs sm:text-sm font-bold whitespace-nowrap">パート内 A-B ループ:</span>
                         <button
                             onClick={() => {
@@ -355,18 +333,32 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
 
             {/* オーディオのコントローラーと5秒前ボタン */}
             <div className="w-full bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-2xl space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                    <button
-                        onClick={handleLeadinToggle}
-                        className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 border ${
-                            isLeadinEnabled 
-                            ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-500/30' 
-                            : 'bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border-zinc-700'
-                        }`}
-                    >
-                        <span>⏪</span> {isLeadinEnabled ? 'リードイン ON' : 'リードイン OFF (5秒前)'}
-                    </button>
-                    <div className="text-zinc-400 text-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {markers.length > 0 && (
+                            <button
+                                onClick={() => setMode(mode === 'part' ? 'full' : 'part')}
+                                className={`flex-1 sm:flex-none px-3 py-2 text-xs font-bold rounded-lg border transition-colors ${
+                                    mode === 'part'
+                                    ? 'bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 border-indigo-700'
+                                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
+                                }`}
+                            >
+                                {mode === 'part' ? '🎯 パートモード' : '🎵 全体モード'}
+                            </button>
+                        )}
+                        <button
+                            onClick={handleLeadinToggle}
+                            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border ${
+                                isLeadinEnabled 
+                                ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-500/30' 
+                                : 'bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border-zinc-700'
+                            }`}
+                        >
+                            <span>⏪</span> {isLeadinEnabled ? 'リードイン ON' : 'リードイン OFF (5秒前)'}
+                        </button>
+                    </div>
+                    <div className="text-zinc-400 text-sm self-end sm:self-auto">
                         現在: <span className="text-white font-bold text-lg">Page {currentPage}</span>
                     </div>
                 </div>
