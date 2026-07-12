@@ -206,7 +206,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
 
             {/* パート練習モード専用のコントロールパネル */}
             {mode === 'part' && markers.length > 0 && (
-                <div className="w-full bg-indigo-950/30 border border-indigo-900/50 rounded-2xl p-6 shadow-2xl backdrop-blur-sm">
+                <div className="w-full bg-indigo-950/30 border border-indigo-900/50 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-sm">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-indigo-300 font-bold flex items-center gap-2">
                             <span>🔁</span> リピート区間
@@ -228,9 +228,9 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                             </button>
                         </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                        <div className="flex-1 flex items-center gap-3 w-full bg-zinc-900 p-3 rounded-xl border border-zinc-800">
-                            <span className="text-zinc-400 text-sm whitespace-nowrap">開始:</span>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                        <div className="flex-1 flex items-center gap-2 sm:gap-3 w-full bg-zinc-900 p-2 sm:p-3 rounded-xl border border-zinc-800">
+                            <span className="text-zinc-400 text-xs sm:text-sm whitespace-nowrap">開始:</span>
                             <select 
                                 value={startMarkerIdx}
                                 onChange={(e) => {
@@ -241,16 +241,16 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     setCustomLoopA(null)
                                     setCustomLoopB(null)
                                 }}
-                                className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg py-2"
+                                className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-base sm:text-lg py-1 sm:py-2"
                             >
                                 {markers.map((m, i) => (
                                     <option key={`start-${i}`} value={i}>Page {m.page}</option>
                                 ))}
                             </select>
                         </div>
-                        <span className="text-zinc-500 font-bold">〜</span>
-                        <div className="flex-1 flex items-center gap-3 w-full bg-zinc-900 p-3 rounded-xl border border-zinc-800">
-                            <span className="text-zinc-400 text-sm whitespace-nowrap">終了:</span>
+                        <span className="text-zinc-500 font-bold text-sm sm:text-base">〜</span>
+                        <div className="flex-1 flex items-center gap-2 sm:gap-3 w-full bg-zinc-900 p-2 sm:p-3 rounded-xl border border-zinc-800">
+                            <span className="text-zinc-400 text-xs sm:text-sm whitespace-nowrap">終了:</span>
                             <select 
                                 value={endMarkerIdx}
                                 onChange={(e) => {
@@ -261,7 +261,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     setCustomLoopA(null)
                                     setCustomLoopB(null)
                                 }}
-                                className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg py-2"
+                                className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-base sm:text-lg py-1 sm:py-2"
                             >
                                 {markers.map((m, i) => (
                                     <option key={`end-${i}`} value={i}>Page {m.page}</option>
@@ -271,8 +271,8 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                     </div>
 
                     {/* さらに細かく指定するカスタムA-Bループ */}
-                    <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-                        <span className="text-indigo-400 text-sm font-bold whitespace-nowrap">パート内 A-B ループ:</span>
+                    <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center gap-3">
+                        <span className="text-indigo-400 text-xs sm:text-sm font-bold whitespace-nowrap">パート内 A-B ループ:</span>
                         <button
                             onClick={() => {
                                 if (customLoopB !== null && audioState.currentTime >= customLoopB) {
