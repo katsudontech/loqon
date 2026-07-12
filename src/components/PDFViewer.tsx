@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 // react-pdfの標準スタイル
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -26,6 +26,27 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
     }
   }
 
+  // スマホ等の画面サイズに合わせてPDFの横幅を最適化する仕組み
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState<number>(800)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        // paddingを除いた実際の描画可能幅を取得
+        const { width } = entries[0].contentRect
+        // 小さすぎると見えないので最小幅を設ける
+        setContainerWidth(Math.max(width, 200))
+      }
+    })
+    
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
   // --- プレレンダリング（先読み）用の計算 ---
   const prevPage = currentPage > 1 ? currentPage - 1 : null;
   const nextPage = numPages && currentPage < numPages ? currentPage + 1 : null;
@@ -33,7 +54,10 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
   return (
     <div className="flex flex-col items-center w-full h-full">
       {/* PDF表示エリア */}
-      <div className="relative w-full max-w-4xl aspect-[4/3] bg-zinc-900 rounded-xl overflow-hidden shadow-2xl border border-zinc-800 flex items-center justify-center p-4">
+      <div 
+        ref={containerRef}
+        className="relative w-full max-w-4xl aspect-[4/3] bg-zinc-900 rounded-xl overflow-hidden shadow-2xl border border-zinc-800 flex items-center justify-center p-4"
+      >
         <Document
           file={url}
           options={{
@@ -57,7 +81,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
                 <div className="absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden">
                   <Page 
                     pageNumber={prevPage} 
-                    width={800} 
+                    width={containerWidth} 
                     renderTextLayer={false} 
                     renderAnnotationLayer={false} 
                   />
@@ -68,7 +92,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
               <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
                 <Page 
                   pageNumber={currentPage} 
-                  width={800} 
+                  width={containerWidth} 
                   className="shadow-xl max-w-full h-auto object-contain"
                   renderTextLayer={false} 
                   renderAnnotationLayer={false}
@@ -80,7 +104,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
                 <div className="absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden">
                   <Page 
                     pageNumber={nextPage} 
-                    width={800} 
+                    width={containerWidth} 
                     renderTextLayer={false} 
                     renderAnnotationLayer={false} 
                   />

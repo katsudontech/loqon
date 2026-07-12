@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
+import { useCachedMedia } from '@/hooks/useCachedMedia'
 import { AudioControls } from '@/components/AudioControls'
 import { PDFViewerWrapper } from '@/components/PDFViewerWrapper'
 
@@ -18,6 +19,10 @@ type Props = {
 }
 
 export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
+    // URLをキャッシュストレージから取得するカスタムフック
+    const { cachedUrl: localAudioUrl, isCaching: isAudioCaching } = useCachedMedia(audioUrl)
+    const { cachedUrl: localPdfUrl, isCaching: isPdfCaching } = useCachedMedia(pdfUrl)
+
     const { audioRef, ...audioState } = useAudioPlayer()
     
     // モード管理: 'full' = 全体再生, 'part' = パート練習
@@ -165,7 +170,15 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     return (
         <div className="flex flex-col items-center gap-6 w-full max-w-4xl">
             {/* 隠しオーディオ要素 */}
-            <audio ref={audioRef} src={audioUrl} preload="auto" />
+            <audio ref={audioRef} src={localAudioUrl} preload="auto" />
+
+            {/* ダウンロード中表示 */}
+            {(isAudioCaching || isPdfCaching) && (
+                <div className="w-full bg-indigo-500/10 text-indigo-300 text-xs text-center py-2 rounded-lg border border-indigo-500/20 flex justify-center items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    初回の読み込みのため、メディアファイルをキャッシュに保存しています...
+                </div>
+            )}
 
             {/* モード切替タブ */}
             <div className="bg-zinc-900 p-1 rounded-xl flex w-full max-w-sm mx-auto shadow-lg border border-zinc-800">
@@ -329,7 +342,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
 
             {/* PDFビューア */}
             <div className="w-full h-[600px]">
-                <PDFViewerWrapper url={pdfUrl} currentPage={currentPage} />
+                <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
             </div>
             
         </div>

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useTimelineEditor } from '@/hooks/useTimelineEditor'
+import { useCachedMedia } from '@/hooks/useCachedMedia'
 import { AudioControls } from '@/components/AudioControls'
 import { PDFViewerWrapper } from '@/components/PDFViewerWrapper'
 import { useRouter } from 'next/navigation'
@@ -23,6 +24,11 @@ type Props = {
 
 export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], projectId }: Props) => {
     const router = useRouter()
+    
+    // URLをキャッシュストレージから取得するカスタムフック
+    const { cachedUrl: localAudioUrl, isCaching: isAudioCaching } = useCachedMedia(audioUrl)
+    const { cachedUrl: localPdfUrl, isCaching: isPdfCaching } = useCachedMedia(pdfUrl)
+
     const { audioRef, ...audioState } = useAudioPlayer()
     const { markers, recordMarker, deleteMarker, clearMarkers, saveMarkers } = useTimelineEditor(initialMarkers)
 
@@ -50,7 +56,15 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     return (
         <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
             {/* 隠しオーディオ要素：これがフックのaudioRefと繋がり、音楽を再生します */}
-            <audio ref={audioRef} src={audioUrl} preload="auto" />
+            <audio ref={audioRef} src={localAudioUrl} preload="auto" />
+
+            {/* ダウンロード中表示 */}
+            {(isAudioCaching || isPdfCaching) && (
+                <div className="w-full bg-indigo-500/10 text-indigo-300 text-xs text-center py-2 rounded-lg border border-indigo-500/20 flex justify-center items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    初回の読み込みのため、メディアファイルをキャッシュに保存しています...
+                </div>
+            )}
 
             {/* オーディオのコントローラー */}
             <div className="w-full">
@@ -65,9 +79,9 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                 🎵 {currentPage}ページ目 → {currentPage + 1}ページ目に切り替わる瞬間を記録する
             </button>
 
-            {/* PDFビューア（現在はcurrentPageを外から受け取るように修正済み！） */}
-            <div className="w-full h-[600px]">
-                <PDFViewerWrapper url={pdfUrl} currentPage={currentPage} />
+            {/* PDFビューア */}
+            <div className="w-full h-[600px] bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative">
+                <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
             </div>
 
             {/* タイムライン表示エリア */}
