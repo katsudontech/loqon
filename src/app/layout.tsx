@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { LineBrowserWarning } from "@/components/LineBrowserWarning";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -46,6 +47,7 @@ export default function RootLayout({
         <main className="flex-1 flex flex-col relative overflow-x-hidden">
           {children}
         </main>
+        <LineBrowserWarning />
       </body>
     </html>
   );

@@ -147,6 +147,44 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
         }
     }
 
+    // ===== スマホの通知欄（Media Session API）との連携 =====
+    useEffect(() => {
+        if (!('mediaSession' in navigator)) return;
+
+        // 次へボタン
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            if (mode === 'part') {
+                handleShiftPart(1);
+            }
+        });
+
+        // 前へボタン
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            if (mode === 'part' && audioRef.current) {
+                const startMarker = markers[startMarkerIdx];
+                if (!startMarker) return;
+                
+                const loopStart = customLoopA !== null ? customLoopA : startMarker.time;
+                const targetTime = isLeadinEnabled ? Math.max(0, loopStart - 5) : loopStart;
+                
+                const currentAudioTime = audioRef.current.currentTime;
+                
+                // 3秒以上進んでいれば先頭に戻る、そうでなければ前パートへ
+                if (currentAudioTime > targetTime + 3) {
+                    audioRef.current.currentTime = targetTime;
+                } else {
+                    handleShiftPart(-1);
+                }
+            }
+        });
+
+        return () => {
+            navigator.mediaSession.setActionHandler('nexttrack', null);
+            navigator.mediaSession.setActionHandler('previoustrack', null);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode, markers, startMarkerIdx, endMarkerIdx, customLoopA, isLeadinEnabled, audioRef]);
+
     // ===== シークバーの表示計算 =====
     let displayCurrentTime = audioState.currentTime;
     let displayDuration = audioState.duration;
