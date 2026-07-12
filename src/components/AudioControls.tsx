@@ -59,10 +59,11 @@ export function AudioControls({
             onChange={(e) => setPlaybackRate(Number(e.target.value))}
             className="bg-zinc-800 border border-zinc-700 text-xs font-medium text-zinc-300 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
           >
-            <option value={0.5}>0.5x</option>
             <option value={0.75}>0.75x</option>
+            <option value={0.8}>0.8x</option>
+            <option value={0.9}>0.9x</option>
+            <option value={0.95}>0.95x</option>
             <option value={1}>1.0x</option>
-            <option value={1.25}>1.25x</option>
             <option value={1.5}>1.5x</option>
           </select>
         </div>
