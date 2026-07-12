@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase"
 import { PlayerContainer } from "@/components/PlayerContainer"
+import { ShareButton } from "@/components/ShareButton"
 
 type Props = {
   params: Promise<{ projectId: string }>
@@ -45,12 +46,15 @@ export default async function PlayerPage({ params }: Props) {
                     <h1 className="text-3xl font-bold text-white">{project.title || 'Untitled Project'}</h1>
                     <p className="text-zinc-500 text-sm mt-2">Player Mode</p>
                 </div>
-                <a 
-                    href={`/${projectId}/edit`}
-                    className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-2 bg-indigo-500/10 px-4 py-2 rounded-lg transition-colors"
-                >
-                    <span>✏️</span> エディタを開く
-                </a>
+                <div className="flex items-center gap-3">
+                    <ShareButton />
+                    <a 
+                        href={`/${projectId}/edit`}
+                        className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-2 bg-indigo-500/10 px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-indigo-500/30"
+                    >
+                        <span>✏️</span> エディタを開く
+                    </a>
+                </div>
             </div>
             
             <PlayerContainer 
