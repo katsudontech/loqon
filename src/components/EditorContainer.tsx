@@ -139,7 +139,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                             現在のページ ({currentPage}P)
                         </div>
                         <div className="w-full relative flex justify-center bg-black/20">
-                            <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} onDocumentLoadSuccess={setNumPages} />
+                            <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} onDocumentLoadSuccess={setNumPages} fitToContainer={false} />
                         </div>
                     </div>
                     
@@ -150,7 +150,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                                 次のページ ({currentPage + 1}P)
                             </div>
                             <div className="w-full relative flex justify-center bg-black/20">
-                                <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage + 1} />
+                                <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage + 1} fitToContainer={false} />
                             </div>
                         </div>
                     )}

@@ -13,9 +13,10 @@ type Props = {
   url: string // Supabaseから渡ってくるPDFのURL
   currentPage: number // 親コンポーネント(EditorContainer)から指定されるページ番号
   onDocumentLoadSuccess?: (numPages: number) => void // ページ総数を親に伝えるコールバック
+  fitToContainer?: boolean // PDFを親コンテナに合わせるか（true）、自身の高さで描画するか（false）
 }
 
-export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
+export function PDFViewer({ url, currentPage, onDocumentLoadSuccess, fitToContainer = true }: Props) {
   const [numPages, setNumPages] = useState<number>()
 
   // PDFの読み込みが成功した時に呼ばれる関数
@@ -37,7 +38,10 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
     const observer = new ResizeObserver((entries) => {
       if (entries[0]) {
         // paddingを除いた実際の描画可能幅を取得
-        const { width } = entries[0].contentRect
+        let { width } = entries[0].contentRect
+        if (fitToContainer) {
+          width = width - 32 // padding分を考慮
+        }
         // 小さすぎると見えないので最小幅を設ける
         setContainerWidth(Math.max(width, 200))
       }
@@ -45,14 +49,14 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
 
     observer.observe(container)
     return () => observer.disconnect()
-  }, [])
+  }, [fitToContainer])
 
   // --- プレレンダリング（先読み）用の計算 ---
   const prevPage = currentPage > 1 ? currentPage - 1 : null;
   const nextPage = numPages && currentPage < numPages ? currentPage + 1 : null;
 
   return (
-    <div className="flex flex-col w-full h-full flex-1 overflow-hidden">
+    <div className={`flex flex-col w-full ${fitToContainer ? 'h-full flex-1 overflow-hidden' : ''}`}>
       <Document
         file={url}
         options={{
@@ -66,22 +70,22 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
             <p>PDFを読み込み中...</p>
           </div>
         }
-        className="w-full h-full flex-1 flex flex-col"
+        className={`w-full ${fitToContainer ? 'h-full flex-1 flex flex-col' : 'flex flex-col'}`}
       >
         {numPages && (
-          <div className="flex flex-col w-full h-full flex-1">
+          <div className={`w-full ${fitToContainer ? 'flex flex-col h-full flex-1' : ''}`}>
             {/* メインPDF表示エリア */}
             <div
               ref={containerRef}
-              className="relative w-full h-full flex-1 bg-zinc-900/50 flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+              className={`relative w-full ${fitToContainer ? 'h-full flex-1 bg-zinc-900/50 flex items-center justify-center p-2 sm:p-4 overflow-hidden' : 'flex justify-center items-center'}`}
             >
               {/* 前のページ（プレレンダリング用・完全透明で見えない） */}
               {prevPage && (
-                <div className="absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden">
+                <div className={`absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden`}>
                   <Page
                     pageNumber={prevPage}
                     width={containerWidth}
-                    className="max-w-full max-h-full flex items-center justify-center [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain"
+                    className={`flex items-center justify-center ${fitToContainer ? 'max-w-full max-h-full [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain' : '[&_canvas]:!w-full [&_canvas]:!h-auto'}`}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
                   />
@@ -89,11 +93,11 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
               )}
 
               {/* 現在のページ */}
-              <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-2 sm:p-4">
+              <div className={`${fitToContainer ? 'absolute inset-0 flex items-center justify-center overflow-hidden p-2 sm:p-4' : 'flex items-center justify-center w-full'}`}>
                 <Page
                   pageNumber={currentPage}
                   width={containerWidth}
-                  className="shadow-xl max-w-full max-h-full flex items-center justify-center [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain"
+                  className={`shadow-xl flex items-center justify-center ${fitToContainer ? 'max-w-full max-h-full [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain' : '[&_canvas]:!w-full [&_canvas]:!h-auto'}`}
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
                 />
@@ -101,11 +105,11 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
 
               {/* 次のページ（プレレンダリング用・完全透明で見えない） */}
               {nextPage && (
-                <div className="absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden">
+                <div className={`absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden`}>
                   <Page
                     pageNumber={nextPage}
                     width={containerWidth}
-                    className="max-w-full max-h-full flex items-center justify-center [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain"
+                    className={`flex items-center justify-center ${fitToContainer ? 'max-w-full max-h-full [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain' : '[&_canvas]:!w-full [&_canvas]:!h-auto'}`}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
                   />
