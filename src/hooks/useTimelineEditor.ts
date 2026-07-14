@@ -1,13 +1,7 @@
 'use client'
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
-
-export type Marker = {
-    id?: string
-    time: number
-    page: number
-    text?: string
-}
+import { Marker, convertMarkersToDbPayload } from "@/lib/timeline"
 
 export const useTimelineEditor = (initialMarkers: Marker[] = []) => {
     // 初期状態：もし空っぽなら、必ず「1ページ目が0秒から始まる」マーカーを入れておく
@@ -32,22 +26,8 @@ export const useTimelineEditor = (initialMarkers: Marker[] = []) => {
 
     const saveMarkers = async (projectId: string) => {
 
-        const sorted = [...markers].sort((a, b) => a.time - b.time)
-
         // DBに保存する形式に変換（end_timeを計算）
-        const payload = sorted.map((m, i) => {
-            // 最後のマーカーでなければ次のマーカーの開始時刻、最後なら超長い時間(99999)をend_timeにする
-            const endTime = i < sorted.length - 1 ? sorted[i + 1].time : 99999;
-
-            return {
-                // id は新規作成時に自動生成されるため、あえて外しておくか、ある場合のみ渡す
-                ...(m.id ? { id: m.id } : {}),
-                project_id: projectId,
-                page_number: m.page,
-                start_time: m.time,
-                end_time: endTime,
-            }
-        })
+        const payload = convertMarkersToDbPayload(markers, projectId)
 
         await supabase.from('timeline_markers').delete().eq('project_id', projectId)
         const { data, error } = await supabase.from('timeline_markers').insert(payload)

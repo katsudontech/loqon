@@ -24,7 +24,7 @@ type Props = {
 
 export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], projectId }: Props) => {
     const router = useRouter()
-    
+
     // URLをキャッシュストレージから取得するカスタムフック
     const { cachedUrl: localAudioUrl, isCaching: isAudioCaching } = useCachedMedia(audioUrl)
     const { cachedUrl: localPdfUrl, isCaching: isPdfCaching } = useCachedMedia(pdfUrl)
@@ -34,7 +34,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
 
     const [currentPage, setCurrentPage] = useState(1)
 
-    const handleRecordMarker = () => {
+    const handleRecordPageTurn = () => {
         if (!audioState.isPlaying) {
             alert('音楽を再生してから記録を開始してください！')
             return
@@ -42,9 +42,17 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
 
         const nextPage = currentPage + 1
         recordMarker(audioState.currentTime, nextPage)
-
-        // ページ送り
         setCurrentPage(nextPage)
+    }
+
+    const handleRecordPartChange = () => {
+        if (!audioState.isPlaying) {
+            alert('音楽を再生してから記録を開始してください！')
+            return
+        }
+
+        // ページはそのまま
+        recordMarker(audioState.currentTime, currentPage)
     }
 
     const handleSaveButton = async () => {
@@ -71,13 +79,21 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                 <AudioControls {...audioState} />
             </div>
 
-            {/* ドデカい記録ボタン */}
-            <button
-                onClick={handleRecordMarker}
-                className="w-full py-6 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-2xl font-bold rounded-2xl shadow-[0_0_40px_rgba(99,102,241,0.3)] hover:shadow-[0_0_60px_rgba(99,102,241,0.5)] transition-all active:scale-[0.98]"
-            >
-                🎵 {currentPage}ページ目 → {currentPage + 1}ページ目に切り替わる瞬間を記録する
-            </button>
+            {/* 記録ボタンエリア */}
+            <div className="w-full flex gap-4">
+                <button
+                    onClick={handleRecordPartChange}
+                    className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white text-xl font-bold rounded-2xl shadow-lg border border-zinc-700 transition-all active:scale-[0.98]"
+                >
+                    📍 同じページでパートを区切る
+                </button>
+                <button
+                    onClick={handleRecordPageTurn}
+                    className="flex-1 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xl font-bold rounded-2xl shadow-[0_0_40px_rgba(99,102,241,0.3)] hover:shadow-[0_0_60px_rgba(99,102,241,0.5)] transition-all active:scale-[0.98]"
+                >
+                    📄 次のページ ({currentPage + 1}P) へ
+                </button>
+            </div>
 
             {/* PDFビューア */}
             <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative">
@@ -105,30 +121,33 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                             <p className="text-zinc-600 text-sm mt-1">音楽を再生し、記録ボタンを押してマーカーを追加してください</p>
                         </div>
                     ) : (
-                        markers.map((m, i) => (
-                            <div
-                                key={m.id || i}
-                                className="flex items-center justify-between bg-zinc-800 rounded-xl px-6 py-4 hover:bg-zinc-700/80 transition-colors border border-zinc-700/50"
-                            >
-                                <div className="flex items-center gap-6">
-                                    <span className="font-mono text-lg text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-lg">
-                                        {m.time.toFixed(1)}s
-                                    </span>
-                                    <span className="text-zinc-300 font-medium text-lg">
-                                        Page {m.page}
-                                    </span>
-                                </div>
-                                <button
-                                    onClick={() => deleteMarker(m.time, m.page)}
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2 rounded-lg transition-colors"
-                                    title="削除"
+                        [...markers].sort((a, b) => a.time - b.time).map((m, i, arr) => {
+                            const partNumber = arr.slice(0, i + 1).filter(x => x.page === m.page).length;
+                            return (
+                                <div
+                                    key={m.id || i}
+                                    className="flex items-center justify-between bg-zinc-800 rounded-xl px-6 py-4 hover:bg-zinc-700/80 transition-colors border border-zinc-700/50"
                                 >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        ))
+                                    <div className="flex items-center gap-6">
+                                        <span className="font-mono text-lg text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-lg">
+                                            {m.time.toFixed(1)}s
+                                        </span>
+                                        <span className="text-zinc-300 font-medium text-lg">
+                                            Page {m.page} {partNumber > 1 && <span className="text-zinc-500 text-sm ml-2">Part {partNumber}</span>}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => deleteMarker(m.time, m.page)}
+                                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2 rounded-lg transition-colors"
+                                        title="削除"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            );
+                        })
                     )}
                 </div>
 

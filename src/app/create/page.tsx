@@ -1,5 +1,5 @@
-import { createProject } from './actions'
-import { SubmitButton } from './SubmitButton'
+import { saveProject } from '@/app/actions'
+import { SubmitButton } from '@/components/SubmitButton'
 import Link from 'next/link'
 
 export default function CreatePage() {
@@ -13,8 +13,8 @@ export default function CreatePage() {
           <p className="text-zinc-400">音源と構成図（PDF）をアップロードして準備を始めましょう。</p>
         </div>
 
-        {/* Server Action を action 属性に指定 */}
-        <form action={createProject} className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+        {/* Server Action を action 属性に指定 (bindを使ってnullを渡し、新規作成扱いにする) */}
+        <form action={saveProject.bind(null, null)} className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
           
           <div className="space-y-2">
             <label htmlFor="title" className="block text-sm font-medium text-zinc-300">

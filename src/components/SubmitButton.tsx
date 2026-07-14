@@ -2,7 +2,12 @@
 
 import { useFormStatus } from 'react-dom'
 
-export function SubmitButton() {
+type Props = {
+    idleText?: string;
+    pendingText?: string;
+}
+
+export function SubmitButton({ idleText = 'プロジェクトを作成する', pendingText = 'アップロード中...' }: Props) {
   const { pending } = useFormStatus()
 
   return (
@@ -14,10 +19,10 @@ export function SubmitButton() {
       {pending ? (
         <>
           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          アップロード中...
+          {pendingText}
         </>
       ) : (
-        'プロジェクトを作成する'
+        idleText
       )}
     </button>
   )
