@@ -230,26 +230,24 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                 {/* リピート区間コントロール */}
                 {mode === 'part' && markers.length > 0 && (
                     <div className="w-full bg-indigo-950/30 border-b border-indigo-900/50 p-2 sm:p-4 backdrop-blur-sm">
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-indigo-300 font-bold flex items-center gap-1 text-sm sm:text-base">
-                                <span>🔁</span> リピート区間
-                            </h3>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => handleShiftPart(-1)}
-                                    disabled={startMarkerIdx <= 0}
-                                    className="px-2 py-1 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 text-xs sm:text-sm font-medium rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    ◀ 前
-                                </button>
-                                <button
-                                    onClick={() => handleShiftPart(1)}
-                                    disabled={endMarkerIdx >= markers.length - 1}
-                                    className="px-2 py-1 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 text-xs sm:text-sm font-medium rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    次 ▶
-                                </button>
+                        <div className="flex justify-between items-center mb-3">
+                            <button
+                                onClick={() => handleShiftPart(-1)}
+                                disabled={startMarkerIdx <= 0}
+                                className="px-4 py-3 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-xl flex-1 mr-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-center text-sm sm:text-base"
+                            >
+                                ◀ 前のパート
+                            </button>
+                            <div className="flex flex-col items-center justify-center mx-1">
+                                <span className="text-indigo-300/80 text-xs font-bold whitespace-nowrap">🔁</span>
                             </div>
+                            <button
+                                onClick={() => handleShiftPart(1)}
+                                disabled={endMarkerIdx >= markers.length - 1}
+                                className="px-4 py-3 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-xl flex-1 ml-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-center text-sm sm:text-base"
+                            >
+                                次のパート ▶
+                            </button>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="flex-1 flex items-center gap-2 bg-zinc-900 p-2 rounded-xl border border-zinc-800">
