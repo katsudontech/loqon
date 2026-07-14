@@ -97,10 +97,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                 
                 {isTimelineExpanded && (
                     <div className="w-full bg-zinc-950 flex flex-col max-h-[40vh] border-t border-zinc-800">
-                        <div className="flex justify-between items-center p-2 px-4 border-b border-zinc-800 bg-zinc-900 shrink-0">
-                            <button onClick={handleSaveButton} disabled={markers.length === 0} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded shadow transition-colors disabled:opacity-50">
-                                💾 保存してプレイヤーへ
-                            </button>
+                        <div className="flex justify-end items-center p-2 px-4 border-b border-zinc-800 bg-zinc-900 shrink-0">
                             <button onClick={clearMarkers} className="text-xs px-2 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded transition-colors">
                                 全削除
                             </button>
@@ -137,22 +134,22 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
             <div className="flex-1 w-full overflow-y-auto bg-zinc-950 p-2 sm:p-4">
                 <div className="flex flex-col gap-4">
                     {/* 現在のページ */}
-                    <div className="w-full h-[60vh] min-h-[400px] bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative flex flex-col shrink-0">
+                    <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative flex flex-col shrink-0">
                         <div className="bg-zinc-800 text-center text-zinc-300 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-700 shrink-0">
                             現在のページ ({currentPage}P)
                         </div>
-                        <div className="flex-1 w-full h-full relative overflow-hidden">
+                        <div className="w-full relative flex justify-center bg-black/20">
                             <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} onDocumentLoadSuccess={setNumPages} />
                         </div>
                     </div>
                     
                     {/* 次のページ */}
                     {numPages && currentPage < numPages && (
-                        <div className="w-full h-[60vh] min-h-[400px] bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-xl relative flex flex-col opacity-80 shrink-0">
+                        <div className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-xl relative flex flex-col opacity-80 shrink-0">
                             <div className="bg-zinc-800/50 text-center text-zinc-400 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-800 shrink-0">
                                 次のページ ({currentPage + 1}P)
                             </div>
-                            <div className="flex-1 w-full h-full relative overflow-hidden">
+                            <div className="w-full relative flex justify-center bg-black/20">
                                 <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage + 1} />
                             </div>
                         </div>
@@ -187,6 +184,13 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                         className="w-full py-2 mt-1 bg-zinc-800/40 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-300 text-xs sm:text-sm font-medium rounded-lg border border-zinc-700/50 transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                     >
                         ◀ 前のページに戻る（やり直し用）
+                    </button>
+                    <button
+                        onClick={handleSaveButton}
+                        disabled={markers.length === 0}
+                        className="w-full py-3 mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        <span>💾</span> 保存してプレイヤーへ
                     </button>
                 </div>
             </div>
