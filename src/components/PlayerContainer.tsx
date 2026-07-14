@@ -220,8 +220,8 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                 </div>
             )}
 
-            {/* PDFビューア (スクロール領域) */}
-            <div className="flex-1 w-full overflow-y-auto bg-zinc-950 flex flex-col relative">
+            {/* PDFビューア (スクロールしないように画面にフィットさせる領域) */}
+            <div className="flex-1 w-full overflow-hidden bg-zinc-950 flex flex-col relative">
                 <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
             </div>
 

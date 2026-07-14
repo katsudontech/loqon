@@ -52,7 +52,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
   const nextPage = numPages && currentPage < numPages ? currentPage + 1 : null;
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full h-full flex-1 overflow-hidden">
       <Document
         file={url}
         options={{
@@ -66,14 +66,14 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
             <p>PDFを読み込み中...</p>
           </div>
         }
-        className="w-full flex flex-col"
+        className="w-full h-full flex-1 flex flex-col"
       >
         {numPages && (
-          <div className="flex flex-col w-full">
+          <div className="flex flex-col w-full h-full flex-1">
             {/* メインPDF表示エリア */}
             <div
               ref={containerRef}
-              className="relative w-full aspect-[4/3] bg-zinc-900/50 flex items-center justify-center p-2 sm:p-4"
+              className="relative w-full h-full flex-1 bg-zinc-900/50 flex items-center justify-center p-2 sm:p-4 overflow-hidden"
             >
               {/* 前のページ（プレレンダリング用・完全透明で見えない） */}
               {prevPage && (
@@ -81,6 +81,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
                   <Page
                     pageNumber={prevPage}
                     width={containerWidth}
+                    className="max-w-full max-h-full flex items-center justify-center [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain"
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
                   />
@@ -92,7 +93,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
                 <Page
                   pageNumber={currentPage}
                   width={containerWidth}
-                  className="shadow-xl max-w-full h-auto object-contain"
+                  className="shadow-xl max-w-full max-h-full flex items-center justify-center [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain"
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
                 />
@@ -104,6 +105,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
                   <Page
                     pageNumber={nextPage}
                     width={containerWidth}
+                    className="max-w-full max-h-full flex items-center justify-center [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain"
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
                   />
