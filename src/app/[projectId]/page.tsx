@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase"
 import { PlayerContainer } from "@/components/PlayerContainer"
 import { ShareButton } from "@/components/ShareButton"
+import { RecentProjectTracker } from "@/components/RecentProjectTracker"
 
 type Props = {
     params: Promise<{ projectId: string }>
@@ -40,7 +41,8 @@ export default async function PlayerPage({ params }: Props) {
     }))
 
     return (
-        <div className="min-h-screen bg-zinc-950 p-4 sm:p-8 flex flex-col items-center">
+        <div className="min-h-screen bg-zinc-950 p-4 sm:p-8 flex flex-col items-center relative">
+            <RecentProjectTracker projectId={projectId} title={project.title || ''} />
             <div className="w-full max-w-4xl flex justify-between items-end mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-white">{project.title || 'Untitled Project'}</h1>

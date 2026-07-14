@@ -43,11 +43,12 @@ export default function Home() {
             </svg>
           </Link>
           
-          <button
+          <Link
+            href="/select"
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-zinc-900 border border-zinc-800 text-zinc-300 font-medium rounded-full hover:bg-zinc-800 hover:text-white transition-colors"
           >
-            デモを見る
-          </button>
+            最近見たショーケース
+          </Link>
         </div>
       </div>
       
