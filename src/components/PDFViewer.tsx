@@ -52,30 +52,29 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
   const nextPage = numPages && currentPage < numPages ? currentPage + 1 : null;
 
   return (
-    <div className="flex flex-col items-center w-full h-full">
-      {/* PDF表示エリア */}
-      <div 
-        ref={containerRef}
-        className="relative w-full max-w-4xl aspect-[4/3] bg-zinc-900 rounded-xl overflow-hidden shadow-2xl border border-zinc-800 flex items-center justify-center p-4"
+    <div className="flex flex-col w-full h-full">
+      <Document
+        file={url}
+        options={{
+          cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+          cMapPacked: true,
+        }}
+        onLoadSuccess={handleLoadSuccess}
+        loading={
+          <div className="flex flex-col items-center justify-center gap-4 text-zinc-400 aspect-[4/3] w-full">
+            <div className="w-8 h-8 border-4 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+            <p>PDFを読み込み中...</p>
+          </div>
+        }
+        className="w-full flex flex-col"
       >
-        <Document
-          file={url}
-          options={{
-            cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
-            cMapPacked: true,
-          }}
-          onLoadSuccess={handleLoadSuccess}
-          loading={
-            <div className="flex flex-col items-center gap-4 text-zinc-400">
-              <div className="w-8 h-8 border-4 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
-              <p>PDFを読み込み中...</p>
-            </div>
-          }
-          className="w-full h-full flex items-center justify-center"
-        >
-          {numPages && (
-            <div className="relative w-full h-full flex items-center justify-center">
-              
+        {numPages && (
+          <div className="flex flex-col w-full">
+            {/* メインPDF表示エリア */}
+            <div 
+              ref={containerRef}
+              className="relative w-full aspect-[4/3] bg-zinc-900/50 flex items-center justify-center p-2 sm:p-4"
+            >
               {/* 前のページ（プレレンダリング用・完全透明で見えない） */}
               {prevPage && (
                 <div className="absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden">
@@ -89,7 +88,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
               )}
               
               {/* 現在のページ */}
-              <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-2 sm:p-4">
                 <Page 
                   pageNumber={currentPage} 
                   width={containerWidth} 
@@ -111,9 +110,9 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
                 </div>
               )}
             </div>
-          )}
-        </Document>
-      </div>
+          </div>
+        )}
+      </Document>
     </div>
   )
 }

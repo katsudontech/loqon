@@ -33,6 +33,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     const { markers, recordMarker, deleteMarker, clearMarkers, saveMarkers } = useTimelineEditor(initialMarkers)
 
     const [currentPage, setCurrentPage] = useState(1)
+    const [numPages, setNumPages] = useState<number | null>(null)
 
     const handleRecordPageTurn = () => {
         if (!audioState.isPlaying) {
@@ -80,24 +81,68 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
             </div>
 
             {/* 記録ボタンエリア */}
-            <div className="w-full flex gap-4">
-                <button
-                    onClick={handleRecordPartChange}
-                    className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white text-xl font-bold rounded-2xl shadow-lg border border-zinc-700 transition-all active:scale-[0.98]"
-                >
-                    📍 同じページでパートを区切る
-                </button>
-                <button
-                    onClick={handleRecordPageTurn}
-                    className="flex-1 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xl font-bold rounded-2xl shadow-[0_0_40px_rgba(99,102,241,0.3)] hover:shadow-[0_0_60px_rgba(99,102,241,0.5)] transition-all active:scale-[0.98]"
-                >
-                    📄 次のページ ({currentPage + 1}P) へ
-                </button>
+            <div className="w-full flex flex-col gap-3">
+                <div className="flex gap-4">
+                    <button
+                        onClick={handleRecordPartChange}
+                        className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white text-xl font-bold rounded-2xl shadow-lg border border-zinc-700 transition-all active:scale-[0.98]"
+                    >
+                        📍 同じページでパートを区切る
+                    </button>
+                    <button
+                        onClick={handleRecordPageTurn}
+                        disabled={numPages !== null && currentPage >= numPages}
+                        className="flex-1 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xl font-bold rounded-2xl shadow-[0_0_40px_rgba(99,102,241,0.3)] hover:shadow-[0_0_60px_rgba(99,102,241,0.5)] transition-all active:scale-[0.98] disabled:from-zinc-600 disabled:to-zinc-700 disabled:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {numPages !== null && currentPage >= numPages ? '📄 最後のページです' : `📄 次のページ (${currentPage + 1}P) へ`}
+                    </button>
+                </div>
+                <div>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage <= 1}
+                        className="w-full py-3 bg-zinc-800/40 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-300 text-sm font-medium rounded-xl border border-zinc-700/50 transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                        前のページ ({currentPage > 1 ? currentPage - 1 : 1}P) に戻る（記録やり直し用）
+                    </button>
+                    <p className="text-xs text-zinc-500 text-center mt-2 flex items-center justify-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        間違えて記録したマーカーを取り消す場合は、下部のタイムライン一覧から削除してください。
+                    </p>
+                </div>
             </div>
 
-            {/* PDFビューア */}
-            <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative">
-                <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
+            {/* PDFビューア（2ページ並べて表示） */}
+            <div className={`w-full grid gap-4 ${numPages && currentPage < numPages ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                {/* 現在のページ */}
+                <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative flex flex-col">
+                    <div className="bg-zinc-800 text-center text-zinc-300 text-sm font-bold py-2 border-b border-zinc-700">
+                        現在のページ ({currentPage}P)
+                    </div>
+                    <PDFViewerWrapper 
+                        url={localPdfUrl} 
+                        currentPage={currentPage} 
+                        onDocumentLoadSuccess={setNumPages}
+                    />
+                </div>
+                
+                {/* 次のページ */}
+                {numPages && currentPage < numPages && (
+                    <div className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-xl relative flex flex-col opacity-80">
+                        <div className="bg-zinc-800/50 text-center text-zinc-400 text-sm font-bold py-2 border-b border-zinc-800">
+                            次のページ ({currentPage + 1}P)
+                        </div>
+                        <PDFViewerWrapper 
+                            url={localPdfUrl} 
+                            currentPage={currentPage + 1} 
+                        />
+                    </div>
+                )}
             </div>
 
             {/* タイムライン表示エリア */}
