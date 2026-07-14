@@ -41,7 +41,7 @@ export default async function PlayerPage({ params }: Props) {
     }))
 
     return (
-        <div className="h-[100dvh] w-full bg-zinc-950 flex flex-col overflow-hidden">
+        <div className="h-[calc(100dvh-4rem)] w-full bg-zinc-950 flex flex-col overflow-hidden">
             <RecentProjectTracker projectId={projectId} title={project.title || ''} />
             
             {/* Header: fixed height */}
