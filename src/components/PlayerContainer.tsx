@@ -139,11 +139,13 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             setCustomLoopA(null);
             setCustomLoopB(null);
 
-            // シフトしたら自動的に新しいパートの先頭に飛ぶ
-            if (audioRef.current) {
-                const targetTime = isLeadinEnabled ? Math.max(0, markers[newStart].time - 5) : markers[newStart].time;
-                audioRef.current.currentTime = targetTime;
-            }
+            // シフトしたら自動的に新しいパートの先頭に飛ぶ (Safari対応のためsetTimeoutで遅延実行)
+            setTimeout(() => {
+                if (audioRef.current && markers[newStart]) {
+                    const targetTime = isLeadinEnabled ? Math.max(0, markers[newStart].time - 5) : markers[newStart].time;
+                    audioRef.current.currentTime = targetTime;
+                }
+            }, 10);
         }
     }
 
@@ -256,6 +258,14 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     if (endMarkerIdx < newStart) setEndMarkerIdx(newStart)
                                     setCustomLoopA(null)
                                     setCustomLoopB(null)
+
+                                    // ドロップダウンからの変更時も新しいパートの先頭に飛ぶ (Safari対応)
+                                    setTimeout(() => {
+                                        if (audioRef.current && markers[newStart]) {
+                                            const targetTime = isLeadinEnabled ? Math.max(0, markers[newStart].time - 5) : markers[newStart].time;
+                                            audioRef.current.currentTime = targetTime;
+                                        }
+                                    }, 10);
                                 }}
                                 className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-base sm:text-lg py-1 sm:py-2"
                             >

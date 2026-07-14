@@ -3,7 +3,7 @@ import { PlayerContainer } from "@/components/PlayerContainer"
 import { ShareButton } from "@/components/ShareButton"
 
 type Props = {
-  params: Promise<{ projectId: string }>
+    params: Promise<{ projectId: string }>
 }
 
 export default async function PlayerPage({ params }: Props) {
@@ -26,7 +26,7 @@ export default async function PlayerPage({ params }: Props) {
         .select('*')
         .eq('project_id', projectId)
         .order('start_time', { ascending: true })
-    
+
     if (markersError) {
         console.error("Error fetching markers:", markersError)
     }
@@ -48,7 +48,7 @@ export default async function PlayerPage({ params }: Props) {
                 </div>
                 <div className="flex items-center gap-3">
                     <ShareButton />
-                    <a 
+                    <a
                         href={`/${projectId}/edit`}
                         className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-2 bg-indigo-500/10 px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-indigo-500/30"
                     >
@@ -56,10 +56,10 @@ export default async function PlayerPage({ params }: Props) {
                     </a>
                 </div>
             </div>
-            
-            <PlayerContainer 
-                audioUrl={project.audio_url} 
-                pdfUrl={project.pdf_url} 
+
+            <PlayerContainer
+                audioUrl={project.audio_url}
+                pdfUrl={project.pdf_url}
                 markers={markers}
             />
         </div>
