@@ -208,201 +208,164 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     }
 
     return (
-        <div className="flex flex-col items-center gap-6 w-full max-w-4xl">
+        <div className="flex flex-col w-full h-full overflow-hidden relative">
             {/* 隠しオーディオ要素 */}
             <audio ref={audioRef} src={localAudioUrl} preload="auto" />
 
-            {/* ダウンロード中表示 */}
+            {/* ダウンロード中表示 (画面上部に固定) */}
             {(isAudioCaching || isPdfCaching) && (
-                <div className="w-full bg-indigo-500/10 text-indigo-300 text-xs text-center py-2 rounded-lg border border-indigo-500/20 flex justify-center items-center gap-2">
-                    <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <div className="absolute top-2 left-2 right-2 z-50 bg-indigo-500/90 text-white text-xs text-center py-2 px-4 rounded-lg shadow-lg flex justify-center items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     初回の読み込みのため、メディアファイルをキャッシュに保存しています...
                 </div>
             )}
 
-
-
-            {/* パート練習モード専用のコントロールパネル */}
-            {mode === 'part' && markers.length > 0 && (
-                <div className="w-full bg-indigo-950/30 border border-indigo-900/50 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-sm">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-indigo-300 font-bold flex items-center gap-2">
-                            <span>🔁</span> リピート区間
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => handleShiftPart(-1)}
-                                disabled={startMarkerIdx <= 0}
-                                className="px-3 py-1 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 text-sm font-medium rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            >
-                                ◀ 前パート
-                            </button>
-                            <button
-                                onClick={() => handleShiftPart(1)}
-                                disabled={endMarkerIdx >= markers.length - 1}
-                                className="px-3 py-1 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 text-sm font-medium rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            >
-                                次パート ▶
-                            </button>
-                        </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-                        <div className="flex-1 flex items-center gap-2 sm:gap-3 w-full bg-zinc-900 p-2 sm:p-3 rounded-xl border border-zinc-800">
-                            <span className="text-zinc-400 text-xs sm:text-sm whitespace-nowrap">開始:</span>
-                            <select
-                                value={startMarkerIdx}
-                                onChange={(e) => {
-                                    const newStart = Number(e.target.value)
-                                    setStartMarkerIdx(newStart)
-                                    // 終了が開始より前になったら、終了を開始に合わせる
-                                    if (endMarkerIdx < newStart) setEndMarkerIdx(newStart)
-                                    setCustomLoopA(null)
-                                    setCustomLoopB(null)
-
-                                    // ドロップダウンからの変更時も新しいパートの先頭に飛ぶ (Safari対応)
-                                    setTimeout(() => {
-                                        if (audioRef.current && markers[newStart]) {
-                                            const targetTime = isLeadinEnabled ? Math.max(0, markers[newStart].time - 5) : markers[newStart].time;
-                                            audioRef.current.currentTime = targetTime;
-                                        }
-                                    }, 10);
-                                }}
-                                className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-base sm:text-lg py-1 sm:py-2"
-                            >
-                                {markers.map((m, i) => (
-                                    <option key={`start-${i}`} value={i}>Page {m.page}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <span className="text-zinc-500 font-bold text-sm sm:text-base">〜</span>
-                        <div className="flex-1 flex items-center gap-2 sm:gap-3 w-full bg-zinc-900 p-2 sm:p-3 rounded-xl border border-zinc-800">
-                            <span className="text-zinc-400 text-xs sm:text-sm whitespace-nowrap">終了:</span>
-                            <select
-                                value={endMarkerIdx}
-                                onChange={(e) => {
-                                    const newEnd = Number(e.target.value)
-                                    setEndMarkerIdx(newEnd)
-                                    // 開始が終了より後になったら、開始を終了に合わせる
-                                    if (startMarkerIdx > newEnd) setStartMarkerIdx(newEnd)
-                                    setCustomLoopA(null)
-                                    setCustomLoopB(null)
-                                }}
-                                className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-base sm:text-lg py-1 sm:py-2"
-                            >
-                                {markers.map((m, i) => (
-                                    <option key={`end-${i}`} value={i}>Page {m.page}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* さらに細かく指定するカスタムA-Bループ */}
-                    <div className="mt-4 sm:mt-6 flex flex-row flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
-                        <span className="text-indigo-400 text-xs sm:text-sm font-bold whitespace-nowrap">パート内 A-B ループ:</span>
-                        <button
-                            onClick={() => {
-                                if (customLoopB !== null && audioState.currentTime >= customLoopB) {
-                                    return alert('Bより前の時間を設定してください');
-                                }
-                                setCustomLoopA(audioState.currentTime)
-                            }}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${customLoopA !== null
-                                    ? 'bg-indigo-600 text-white border-indigo-500'
-                                    : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'
-                                }`}
-                        >
-                            A: {customLoopA !== null ? `${customLoopA.toFixed(1)}s` : '開始位置を設定'}
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (customLoopA !== null && audioState.currentTime <= customLoopA) {
-                                    return alert('Aより後の時間を設定してください');
-                                }
-                                setCustomLoopB(audioState.currentTime)
-                            }}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${customLoopB !== null
-                                    ? 'bg-indigo-600 text-white border-indigo-500'
-                                    : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'
-                                }`}
-                        >
-                            B: {customLoopB !== null ? `${customLoopB.toFixed(1)}s` : '終了位置を設定'}
-                        </button>
-                        {(customLoopA !== null || customLoopB !== null) && (
-                            <button
-                                onClick={() => { setCustomLoopA(null); setCustomLoopB(null); }}
-                                className="px-3 py-1.5 text-xs font-bold bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded-lg border border-zinc-700 transition-colors"
-                            >
-                                クリア
-                            </button>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* オーディオのコントローラーと5秒前ボタン */}
-            <div className="w-full bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-2xl space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        {markers.length > 0 && (
-                            <button
-                                onClick={() => setMode(mode === 'part' ? 'full' : 'part')}
-                                className={`flex-1 sm:flex-none px-3 py-2 text-xs font-bold rounded-lg border transition-colors ${mode === 'part'
-                                        ? 'bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 border-indigo-700'
-                                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
-                                    }`}
-                            >
-                                {mode === 'part' ? '🎯 パートモード' : '🎵 全体モード'}
-                            </button>
-                        )}
-                        <button
-                            onClick={handleLeadinToggle}
-                            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border ${isLeadinEnabled
-                                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-500/30'
-                                    : 'bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border-zinc-700'
-                                }`}
-                        >
-                            <span>⏪</span> {isLeadinEnabled ? '5秒前再生 ON' : '5秒前再生 OFF'}
-                        </button>
-                    </div>
-                    <div className="text-zinc-400 text-sm self-end sm:self-auto">
-                        現在: <span className="text-white font-bold text-lg">Page {currentPage}</span>
-                    </div>
-                </div>
-                <AudioControls
-                    {...audioState}
-                    currentTime={displayCurrentTime}
-                    duration={displayDuration}
-                    seekTo={displaySeekTo}
-                />
-            </div>
-
-            {/* PDFビューア */}
-            <div className="w-full">
+            {/* PDFビューア (スクロール領域) */}
+            <div className="flex-1 w-full overflow-y-auto bg-zinc-950 flex flex-col relative">
                 <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
             </div>
 
-            {/* スマホなどでPDFを読んだまま切り替えられるように下部にもボタンを配置 */}
-            {mode === 'part' && markers.length > 0 && (
-                <div className="w-full flex justify-between items-center bg-indigo-950/30 border border-indigo-900/50 p-4 rounded-xl shadow-lg mb-8">
-                    <button
-                        onClick={() => handleShiftPart(-1)}
-                        disabled={startMarkerIdx <= 0}
-                        className="px-4 py-3 sm:px-6 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                        ◀ 前のパート
-                    </button>
-                    <span className="text-zinc-400 font-medium text-xs sm:text-sm">
-                        パート移動
-                    </span>
-                    <button
-                        onClick={() => handleShiftPart(1)}
-                        disabled={endMarkerIdx >= markers.length - 1}
-                        className="px-4 py-3 sm:px-6 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                        次のパート ▶
-                    </button>
+            {/* 下部固定コントロール領域 */}
+            <div className="w-full shrink-0 flex flex-col bg-zinc-950 border-t border-zinc-800 pb-safe">
+                {/* リピート区間コントロール */}
+                {mode === 'part' && markers.length > 0 && (
+                    <div className="w-full bg-indigo-950/30 border-b border-indigo-900/50 p-2 sm:p-4 backdrop-blur-sm">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-indigo-300 font-bold flex items-center gap-1 text-sm sm:text-base">
+                                <span>🔁</span> リピート区間
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => handleShiftPart(-1)}
+                                    disabled={startMarkerIdx <= 0}
+                                    className="px-2 py-1 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 text-xs sm:text-sm font-medium rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    ◀ 前
+                                </button>
+                                <button
+                                    onClick={() => handleShiftPart(1)}
+                                    disabled={endMarkerIdx >= markers.length - 1}
+                                    className="px-2 py-1 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 text-xs sm:text-sm font-medium rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    次 ▶
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 p-2 rounded-xl border border-zinc-800">
+                                <span className="text-zinc-400 text-xs whitespace-nowrap">開始:</span>
+                                <select
+                                    value={startMarkerIdx}
+                                    onChange={(e) => {
+                                        const newStart = Number(e.target.value)
+                                        setStartMarkerIdx(newStart)
+                                        if (endMarkerIdx < newStart) setEndMarkerIdx(newStart)
+                                        setCustomLoopA(null)
+                                        setCustomLoopB(null)
+                                        setTimeout(() => {
+                                            if (audioRef.current && markers[newStart]) {
+                                                const targetTime = isLeadinEnabled ? Math.max(0, markers[newStart].time - 5) : markers[newStart].time;
+                                                audioRef.current.currentTime = targetTime;
+                                            }
+                                        }, 10);
+                                    }}
+                                    className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm py-1"
+                                >
+                                    {markers.map((m, i) => (
+                                        <option key={`start-${i}`} value={i}>Page {m.page}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <span className="text-zinc-500 font-bold text-sm">〜</span>
+                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 p-2 rounded-xl border border-zinc-800">
+                                <span className="text-zinc-400 text-xs whitespace-nowrap">終了:</span>
+                                <select
+                                    value={endMarkerIdx}
+                                    onChange={(e) => {
+                                        const newEnd = Number(e.target.value)
+                                        setEndMarkerIdx(newEnd)
+                                        if (startMarkerIdx > newEnd) setStartMarkerIdx(newEnd)
+                                        setCustomLoopA(null)
+                                        setCustomLoopB(null)
+                                    }}
+                                    className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm py-1"
+                                >
+                                    {markers.map((m, i) => (
+                                        <option key={`end-${i}`} value={i}>Page {m.page}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* カスタムA-Bループ */}
+                        <div className="mt-2 flex flex-row flex-nowrap overflow-x-auto no-scrollbar items-center justify-start gap-2">
+                            <button
+                                onClick={() => {
+                                    if (customLoopB !== null && audioState.currentTime >= customLoopB) return alert('Bより前の時間を設定してください');
+                                    setCustomLoopA(audioState.currentTime)
+                                }}
+                                className={`px-2 py-1 text-xs font-bold rounded border transition-colors whitespace-nowrap ${customLoopA !== null ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'}`}
+                            >
+                                A: {customLoopA !== null ? `${customLoopA.toFixed(1)}s` : '開始'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (customLoopA !== null && audioState.currentTime <= customLoopA) return alert('Aより後の時間を設定してください');
+                                    setCustomLoopB(audioState.currentTime)
+                                }}
+                                className={`px-2 py-1 text-xs font-bold rounded border transition-colors whitespace-nowrap ${customLoopB !== null ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'}`}
+                            >
+                                B: {customLoopB !== null ? `${customLoopB.toFixed(1)}s` : '終了'}
+                            </button>
+                            {(customLoopA !== null || customLoopB !== null) && (
+                                <button
+                                    onClick={() => { setCustomLoopA(null); setCustomLoopB(null); }}
+                                    className="px-2 py-1 text-xs font-bold bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded border border-zinc-700 transition-colors whitespace-nowrap"
+                                >
+                                    クリア
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* オーディオコントロール領域 (一番下) */}
+                <div className="w-full bg-zinc-900 p-3 sm:p-4 pb-8 sm:pb-6 shadow-2xl flex flex-col gap-3">
+                    <div className="flex justify-between items-center gap-2">
+                        <div className="flex items-center gap-2">
+                            {markers.length > 0 && (
+                                <button
+                                    onClick={() => setMode(mode === 'part' ? 'full' : 'part')}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${mode === 'part'
+                                            ? 'bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 border-indigo-700'
+                                            : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
+                                        }`}
+                                >
+                                    {mode === 'part' ? '🎯 パート' : '🎵 全体'}
+                                </button>
+                            )}
+                            <button
+                                onClick={handleLeadinToggle}
+                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 border ${isLeadinEnabled
+                                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500'
+                                        : 'bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border-zinc-700'
+                                    }`}
+                            >
+                                <span>⏪</span> {isLeadinEnabled ? '5秒前 ON' : '5秒前 OFF'}
+                            </button>
+                        </div>
+                        <div className="text-zinc-400 text-xs text-right whitespace-nowrap">
+                            現在: <span className="text-white font-bold text-sm">Page {currentPage}</span>
+                        </div>
+                    </div>
+                    <AudioControls
+                        {...audioState}
+                        currentTime={displayCurrentTime}
+                        duration={displayDuration}
+                        seekTo={displaySeekTo}
+                    />
                 </div>
-            )}
+            </div>
         </div>
     )
 }

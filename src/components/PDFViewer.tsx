@@ -42,7 +42,7 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
         setContainerWidth(Math.max(width, 200))
       }
     })
-    
+
     observer.observe(container)
     return () => observer.disconnect()
   }, [])
@@ -71,29 +71,29 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
         {numPages && (
           <div className="flex flex-col w-full">
             {/* メインPDF表示エリア */}
-            <div 
+            <div
               ref={containerRef}
               className="relative w-full aspect-[4/3] bg-zinc-900/50 flex items-center justify-center p-2 sm:p-4"
             >
               {/* 前のページ（プレレンダリング用・完全透明で見えない） */}
               {prevPage && (
                 <div className="absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden">
-                  <Page 
-                    pageNumber={prevPage} 
-                    width={containerWidth} 
-                    renderTextLayer={false} 
-                    renderAnnotationLayer={false} 
+                  <Page
+                    pageNumber={prevPage}
+                    width={containerWidth}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
                   />
                 </div>
               )}
-              
+
               {/* 現在のページ */}
               <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-2 sm:p-4">
-                <Page 
-                  pageNumber={currentPage} 
-                  width={containerWidth} 
+                <Page
+                  pageNumber={currentPage}
+                  width={containerWidth}
                   className="shadow-xl max-w-full h-auto object-contain"
-                  renderTextLayer={false} 
+                  renderTextLayer={false}
                   renderAnnotationLayer={false}
                 />
               </div>
@@ -101,11 +101,11 @@ export function PDFViewer({ url, currentPage, onDocumentLoadSuccess }: Props) {
               {/* 次のページ（プレレンダリング用・完全透明で見えない） */}
               {nextPage && (
                 <div className="absolute inset-0 opacity-0 pointer-events-none flex items-center justify-center overflow-hidden">
-                  <Page 
-                    pageNumber={nextPage} 
-                    width={containerWidth} 
-                    renderTextLayer={false} 
-                    renderAnnotationLayer={false} 
+                  <Page
+                    pageNumber={nextPage}
+                    width={containerWidth}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
                   />
                 </div>
               )}

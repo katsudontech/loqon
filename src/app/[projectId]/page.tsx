@@ -41,29 +41,34 @@ export default async function PlayerPage({ params }: Props) {
     }))
 
     return (
-        <div className="min-h-screen bg-zinc-950 p-4 sm:p-8 flex flex-col items-center relative">
+        <div className="h-[100dvh] w-full bg-zinc-950 flex flex-col overflow-hidden">
             <RecentProjectTracker projectId={projectId} title={project.title || ''} />
-            <div className="w-full max-w-4xl flex justify-between items-end mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-white">{project.title || 'Untitled Project'}</h1>
-                    <p className="text-zinc-500 text-sm mt-2">Player Mode</p>
+            
+            {/* Header: fixed height */}
+            <div className="w-full shrink-0 flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-950 z-10">
+                <div className="flex-1 min-w-0 mr-4">
+                    <h1 className="text-xl font-bold text-white truncate">{project.title || 'Untitled Project'}</h1>
+                    <p className="text-zinc-500 text-xs mt-1">Player Mode</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
                     <ShareButton />
                     <a
                         href={`/${projectId}/edit`}
-                        className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-2 bg-indigo-500/10 px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-indigo-500/30"
+                        className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 bg-indigo-500/10 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-indigo-500/30"
                     >
-                        <span>✏️</span> エディタを開く
+                        <span>✏️</span> <span className="hidden sm:inline">エディタ</span>
                     </a>
                 </div>
             </div>
 
-            <PlayerContainer
-                audioUrl={project.audio_url}
-                pdfUrl={project.pdf_url}
-                markers={markers}
-            />
+            {/* Player Container takes remaining space */}
+            <div className="flex-1 w-full overflow-hidden relative">
+                <PlayerContainer
+                    audioUrl={project.audio_url}
+                    pdfUrl={project.pdf_url}
+                    markers={markers}
+                />
+            </div>
         </div>
     )
 }
