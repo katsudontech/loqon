@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { LineBrowserWarning } from "@/components/LineBrowserWarning";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -54,6 +55,7 @@ export default function RootLayout({
           {children}
         </main>
         <LineBrowserWarning />
+        <InstallPrompt />
       </body>
     </html>
   );
