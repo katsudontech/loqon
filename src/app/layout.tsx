@@ -16,6 +16,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Loqon - Dance Formation & Audio Sync",
   description: "Synchronize your dance formations with music easily.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Loqon",
+  },
 };
 
 export default function RootLayout({
