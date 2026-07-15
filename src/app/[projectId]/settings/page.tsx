@@ -1,5 +1,4 @@
-import { saveProject } from '@/app/actions'
-import { SubmitButton } from '@/components/SubmitButton'
+import { ProjectForm } from '@/components/ProjectForm'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
@@ -32,58 +31,7 @@ export default async function SettingsPage({ params }: Props) {
             </div>
 
             <div className="w-full max-w-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <form action={saveProject.bind(null, projectId)} className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
-                    
-                    <div className="space-y-2">
-                        <label htmlFor="title" className="block text-sm font-medium text-zinc-300">
-                            プロジェクト名
-                        </label>
-                        <input
-                            type="text"
-                            id="title"
-                            name="title"
-                            defaultValue={project.title || ''}
-                            placeholder="例: 2026 Showcase HipHop"
-                            className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-zinc-600 transition-all"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="audio" className="block text-sm font-medium text-zinc-300">
-                            音源ファイル <span className="text-zinc-500 text-xs ml-2">※変更する場合のみ選択</span>
-                        </label>
-                        <input
-                            type="file"
-                            id="audio"
-                            name="audio"
-                            accept="audio/*"
-                            className="w-full text-sm text-zinc-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer"
-                        />
-                        {project.audio_url && (
-                            <p className="text-xs text-zinc-500 mt-2 truncate">現在のファイル: <a href={project.audio_url} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">リンクを開く</a></p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="pdf" className="block text-sm font-medium text-zinc-300">
-                            構成図 (PDF) <span className="text-zinc-500 text-xs ml-2">※変更する場合のみ選択</span>
-                        </label>
-                        <input
-                            type="file"
-                            id="pdf"
-                            name="pdf"
-                            accept="application/pdf"
-                            className="w-full text-sm text-zinc-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer"
-                        />
-                        {project.pdf_url && (
-                            <p className="text-xs text-zinc-500 mt-2 truncate">現在のファイル: <a href={project.pdf_url} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">リンクを開く</a></p>
-                        )}
-                    </div>
-
-                    <div className="pt-4">
-                        <SubmitButton idleText="設定を更新する" pendingText="更新中..." />
-                    </div>
-                </form>
+                <ProjectForm project={project} />
             </div>
         </div>
     )
