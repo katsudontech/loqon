@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { LineBrowserWarning } from "@/components/LineBrowserWarning";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,7 +39,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-zinc-950 text-zinc-50 selection:bg-indigo-500/30">
         <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
           <div className="container mx-auto flex h-16 items-center justify-between px-6">
-            <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
               <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
                 <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -48,7 +49,7 @@ export default function RootLayout({
               <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 to-zinc-400">
                 Loqon
               </span>
-            </div>
+            </Link>
           </div>
         </header>
         <main className="flex-1 flex flex-col relative overflow-x-hidden">
