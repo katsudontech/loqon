@@ -13,6 +13,7 @@ export type Marker = {
     time: number
     page: number
     text?: string
+    name?: string
 }
 
 type Props = {
@@ -30,7 +31,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     const { cachedUrl: localPdfUrl, isCaching: isPdfCaching } = useCachedMedia(pdfUrl)
 
     const { audioRef, ...audioState } = useAudioPlayer()
-    const { markers, recordMarker, deleteMarker, clearMarkers, saveMarkers } = useTimelineEditor(initialMarkers)
+    const { markers, recordMarker, deleteMarker, updateMarkerName, clearMarkers, saveMarkers } = useTimelineEditor(initialMarkers)
 
     const [currentPage, setCurrentPage] = useState(1)
     const [numPages, setNumPages] = useState<number | null>(null)
@@ -109,18 +110,27 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                                 [...markers].sort((a, b) => a.time - b.time).map((m, i, arr) => {
                                     const partNumber = arr.slice(0, i + 1).filter(x => x.page === m.page).length;
                                     return (
-                                        <div key={m.id || i} className="flex items-center justify-between bg-zinc-800 rounded px-3 py-2 border border-zinc-700/50">
-                                            <div className="flex items-center gap-3">
-                                                <span className="font-mono text-xs sm:text-sm text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded">
-                                                    {m.time.toFixed(1)}s
-                                                </span>
-                                                <span className="text-zinc-300 font-medium text-xs sm:text-sm">
-                                                    Page {m.page} {partNumber > 1 && <span className="text-zinc-500 text-[10px] sm:text-xs ml-1">Part {partNumber}</span>}
-                                                </span>
+                                        <div key={m.id || i} className="flex flex-col gap-2 bg-zinc-800 rounded px-3 py-2 border border-zinc-700/50">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-mono text-xs sm:text-sm text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded">
+                                                        {m.time.toFixed(1)}s
+                                                    </span>
+                                                    <span className="text-zinc-300 font-medium text-xs sm:text-sm">
+                                                        Page {m.page} {partNumber > 1 && <span className="text-zinc-500 text-[10px] sm:text-xs ml-1">Part {partNumber}</span>}
+                                                    </span>
+                                                </div>
+                                                <button onClick={() => deleteMarker(m.time, m.page)} className="text-red-400 hover:text-red-300 p-1 rounded">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
                                             </div>
-                                            <button onClick={() => deleteMarker(m.time, m.page)} className="text-red-400 hover:text-red-300 p-1 rounded">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
+                                            <input
+                                                type="text"
+                                                value={m.name || ''}
+                                                onChange={(e) => updateMarkerName(m.time, m.page, e.target.value)}
+                                                placeholder="フォーメーション名（任意）"
+                                                className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                                            />
                                         </div>
                                     );
                                 })

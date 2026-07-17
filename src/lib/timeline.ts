@@ -5,6 +5,7 @@ export type Marker = {
     time: number
     page: number
     text?: string
+    name?: string
 }
 
 type TimelineMarkerRow = Database['public']['Tables']['timeline_markers']['Row']
@@ -24,6 +25,7 @@ export const convertMarkersToDbPayload = (markers: Marker[], projectId: string):
             page_number: m.page,
             start_time: m.time,
             end_time: endTime,
+            name: m.name || null,
         }
     })
 }
@@ -34,5 +36,6 @@ export const convertDbRowsToMarkers = (rows: TimelineMarkerRow[]): Marker[] => {
         id: row.id,
         time: row.start_time,
         page: row.page_number,
+        name: row.name || undefined,
     }))
 }

@@ -10,6 +10,7 @@ type Marker = {
     time: number
     end_time: number
     page: number
+    name?: string
 }
 
 type Props = {
@@ -270,7 +271,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm py-1"
                                 >
                                     {markers.map((m, i) => (
-                                        <option key={`start-${i}`} value={i}>Page {m.page}</option>
+                                        <option key={`start-${i}`} value={i}>{m.name ? `${m.name} (P${m.page})` : `Page ${m.page}`}</option>
                                     ))}
                                 </select>
                             </div>
@@ -289,7 +290,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm py-1"
                                 >
                                     {markers.map((m, i) => (
-                                        <option key={`end-${i}`} value={i}>Page {m.page}</option>
+                                        <option key={`end-${i}`} value={i}>{m.name ? `${m.name} (P${m.page})` : `Page ${m.page}`}</option>
                                     ))}
                                 </select>
                             </div>
@@ -353,7 +354,10 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                             </button>
                         </div>
                         <div className="text-zinc-400 text-xs text-right whitespace-nowrap">
-                            現在: <span className="text-white font-bold text-sm">Page {currentPage}</span>
+                            現在: <span className="text-white font-bold text-sm">{(() => {
+                                const m = markers.find(m => audioState.currentTime >= m.time && audioState.currentTime < m.end_time) || markers.find(m => m.page === currentPage);
+                                return m?.name ? `${m.name} (P${currentPage})` : `Page ${currentPage}`
+                            })()}</span>
                         </div>
                     </div>
                     <AudioControls

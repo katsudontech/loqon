@@ -19,6 +19,10 @@ export const useTimelineEditor = (initialMarkers: Marker[] = []) => {
         setMarkers(prev => prev.filter(m => m.time !== time || m.page !== page))
     }
 
+    const updateMarkerName = (time: number, page: number, name: string) => {
+        setMarkers(prev => prev.map(m => (m.time === time && m.page === page) ? { ...m, name } : m))
+    }
+
     const clearMarkers = () => {
         // 全削除した時も、1ページ目のマーカーだけは残す
         setMarkers([{ time: 0, page: 1 }])
@@ -43,6 +47,7 @@ export const useTimelineEditor = (initialMarkers: Marker[] = []) => {
         markers,
         recordMarker,
         deleteMarker,
+        updateMarkerName,
         clearMarkers,
         saveMarkers
     }

@@ -37,7 +37,8 @@ export default async function PlayerPage({ params }: Props) {
         id: m.id,
         page: m.page_number,
         time: m.start_time,
-        end_time: m.end_time
+        end_time: m.end_time,
+        name: m.name || undefined
     }))
 
     return (
