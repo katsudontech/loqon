@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -10,23 +10,45 @@ type RecentProject = {
   lastVisited: number;
 };
 
-export default function SelectPage() {
-  const [projects, setProjects] = useState<RecentProject[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const router = useRouter();
+const storageKey = 'recent_projects';
 
-  useEffect(() => {
+const subscribeToRecentProjects = (onStoreChange: () => void) => {
+  window.addEventListener('storage', onStoreChange);
+  return () => window.removeEventListener('storage', onStoreChange);
+};
+
+const getRecentProjectsSnapshot = () => localStorage.getItem(storageKey) ?? '';
+const getRecentProjectsServerSnapshot = () => null;
+
+const isRecentProject = (value: unknown): value is RecentProject => (
+  typeof value === 'object'
+  && value !== null
+  && 'id' in value
+  && typeof value.id === 'string'
+  && 'title' in value
+  && typeof value.title === 'string'
+  && 'lastVisited' in value
+  && typeof value.lastVisited === 'number'
+);
+
+export default function SelectPage() {
+  const router = useRouter();
+  const storedProjects = useSyncExternalStore(
+    subscribeToRecentProjects,
+    getRecentProjectsSnapshot,
+    getRecentProjectsServerSnapshot,
+  );
+  const projects = useMemo(() => {
+    if (!storedProjects) return [];
     try {
-      const stored = localStorage.getItem('recent_projects');
-      if (stored) {
-        setProjects(JSON.parse(stored));
-      }
+      const parsed: unknown = JSON.parse(storedProjects);
+      return Array.isArray(parsed) ? parsed.filter(isRecentProject) : [];
     } catch (e) {
       console.error(e);
-    } finally {
-      setIsLoaded(true);
+      return [];
     }
-  }, []);
+  }, [storedProjects]);
+  const isLoaded = storedProjects !== null;
 
   const formatDate = (ts: number) => {
     const d = new Date(ts);

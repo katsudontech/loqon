@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useCachedMedia } from '@/hooks/useCachedMedia'
 import { AudioControls } from '@/components/AudioControls'
@@ -29,9 +29,6 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     // モード管理: 'full' = 全体再生, 'part' = パート練習
     const [mode, setMode] = useState<'full' | 'part'>('part')
 
-    // PDFの現在ページ
-    const [currentPage, setCurrentPage] = useState(1)
-
     // パート練習時の開始マーカーと終了マーカーのインデックス
     const [startMarkerIdx, setStartMarkerIdx] = useState(0)
     const [endMarkerIdx, setEndMarkerIdx] = useState(0)
@@ -43,11 +40,9 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     const [customLoopA, setCustomLoopA] = useState<number | null>(null)
     const [customLoopB, setCustomLoopB] = useState<number | null>(null)
 
-    // ===== 共通の同期ロジック =====
-    // 現在の再生時間に合わせて、自動的にPDFのページを切り替える
-    useEffect(() => {
-        if (markers.length === 0) return;
-
+    // 現在の再生時間に合わせて表示するPDFページを導出する
+    const currentPage = useMemo(() => {
+        if (markers.length === 0) return 1
         // currentTime 以下で最も時間が大きいマーカーを探す
         let activePage = markers[0].page;
         for (let i = 0; i < markers.length; i++) {
@@ -57,12 +52,8 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                 break; // 時間順に並んでいる前提なので、超えたらそこで終了
             }
         }
-
-        if (currentPage !== activePage) {
-            setCurrentPage(activePage)
-        }
-    }, [audioState.currentTime, markers, currentPage])
-
+        return activePage
+    }, [audioState.currentTime, markers])
 
     // ===== パート練習（A-Bリピート）のロジック =====
     useEffect(() => {
@@ -110,7 +101,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
 
         audio.addEventListener('ended', handleEnded);
         return () => audio.removeEventListener('ended', handleEnded);
-    }, [mode, markers, startMarkerIdx, audioRef]);
+    }, [mode, markers, startMarkerIdx, customLoopA, isLeadinEnabled, audioRef]);
 
     // ===== リードイン（5秒前再生）機能 =====
     const handleLeadinToggle = () => {
@@ -130,7 +121,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     }
 
     // ===== パートの前後移動 =====
-    const handleShiftPart = (direction: -1 | 1) => {
+    const handleShiftPart = useCallback((direction: -1 | 1) => {
         const newStart = startMarkerIdx + direction;
         const newEnd = endMarkerIdx + direction;
 
@@ -148,7 +139,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                 }
             }, 10);
         }
-    }
+    }, [audioRef, endMarkerIdx, isLeadinEnabled, markers, startMarkerIdx])
 
     // ===== スマホの通知欄（Media Session API）との連携 =====
     useEffect(() => {
@@ -185,8 +176,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             navigator.mediaSession.setActionHandler('nexttrack', null);
             navigator.mediaSession.setActionHandler('previoustrack', null);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode, markers, startMarkerIdx, endMarkerIdx, customLoopA, isLeadinEnabled, audioRef]);
+    }, [audioRef, customLoopA, handleShiftPart, isLeadinEnabled, markers, mode, startMarkerIdx]);
 
     // ===== シークバーの表示計算 =====
     let displayCurrentTime = audioState.currentTime;

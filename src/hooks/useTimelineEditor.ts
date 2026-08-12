@@ -24,8 +24,7 @@ export const useTimelineEditor = (initialMarkers: Marker[] = []) => {
     }
 
     const clearMarkers = () => {
-        // 全削除した時も、1ページ目のマーカーだけは残す
-        setMarkers([{ time: 0, page: 1 }])
+        setMarkers([])
     }
 
     const saveMarkers = async (projectId: string) => {
@@ -33,13 +32,14 @@ export const useTimelineEditor = (initialMarkers: Marker[] = []) => {
         // DBに保存する形式に変換（end_timeを計算）
         const payload = convertMarkersToDbPayload(markers, projectId)
 
-        await supabase.from('timeline_markers').delete().eq('project_id', projectId)
-        const { data, error } = await supabase.from('timeline_markers').insert(payload)
+        const { error } = await supabase.rpc('replace_timeline_markers', {
+            p_project_id: projectId,
+            p_markers: payload,
+        })
 
         if (error) {
             console.error('保存エラー:', error)
-        } else {
-            console.log('✅保存完了:', { data })
+            throw error
         }
     }
 

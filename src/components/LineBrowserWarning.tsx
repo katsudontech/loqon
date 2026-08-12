@@ -1,20 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
+
+const subscribeToUserAgent = () => () => undefined
+const getIsLineBrowserSnapshot = () => /Line/i.test(navigator.userAgent)
+const getIsLineBrowserServerSnapshot = () => false
 
 export function LineBrowserWarning() {
-    const [isLineBrowser, setIsLineBrowser] = useState(false)
+    const isLineBrowser = useSyncExternalStore(
+        subscribeToUserAgent,
+        getIsLineBrowserSnapshot,
+        getIsLineBrowserServerSnapshot,
+    )
+    const [isDismissed, setIsDismissed] = useState(false)
 
-    useEffect(() => {
-        // ユーザーエージェントを取得
-        const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
-        // LINE内蔵ブラウザからのアクセスを検知
-        if (ua.indexOf('Line') > -1 || ua.indexOf('LINE') > -1) {
-            setIsLineBrowser(true)
-        }
-    }, [])
-
-    if (!isLineBrowser) return null;
+    if (!isLineBrowser || isDismissed) return null;
 
     return (
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
@@ -28,7 +28,7 @@ export function LineBrowserWarning() {
                     を選択し、SafariやChromeで開き直してください。
                 </p>
                 <button 
-                    onClick={() => setIsLineBrowser(false)}
+                    onClick={() => setIsDismissed(true)}
                     className="mt-2 text-zinc-500 text-xs underline hover:text-zinc-400 transition-colors"
                 >
                     このまま表示する（動作は保証されません）

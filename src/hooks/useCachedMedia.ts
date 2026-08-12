@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react'
-
 /**
  * 以前は CacheStorage API を用いて手動でBlobに変換していましたが、
  * 以下の問題があったためブラウザの標準HTTPキャッシュに任せる設計に刷新しました：

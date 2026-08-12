@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { saveProjectRecord } from '@/app/actions'
-import Link from 'next/link'
 
 type ProjectType = {
   id: string;
@@ -78,9 +77,15 @@ export function ProjectForm({ project }: Props) {
       // DB保存とリダイレクトはServer Actionで行う
       await saveProjectRecord(projectId, title, audioUrl, pdfUrl, isUpdate);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('アップロードエラー:', err);
-      setErrorMsg(err.message || 'アップロードに失敗しました');
+      const message = typeof err === 'object'
+        && err !== null
+        && 'message' in err
+        && typeof err.message === 'string'
+        ? err.message
+        : 'アップロードに失敗しました';
+      setErrorMsg(message);
       setPending(false);
     }
   };

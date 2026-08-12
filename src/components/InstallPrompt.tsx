@@ -1,38 +1,65 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+
+type BeforeInstallPromptChoice = {
+  outcome: 'accepted' | 'dismissed';
+  platform: string;
+};
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<BeforeInstallPromptChoice>;
+}
+
+const isBeforeInstallPromptEvent = (event: Event): event is BeforeInstallPromptEvent => (
+  'prompt' in event
+  && typeof event.prompt === 'function'
+  && 'userChoice' in event
+);
+
+const getEnvironmentSnapshot = () => {
+  const dismissedValue = localStorage.getItem('pwa-prompt-dismissed');
+  const dismissedAt = dismissedValue ? Number.parseInt(dismissedValue, 10) : 0;
+  const isDismissed = Number.isFinite(dismissedAt)
+    && Date.now() - dismissedAt < 1000 * 60 * 60 * 24 * 30;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || ('standalone' in navigator && navigator.standalone === true);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  return [isDismissed, isStandalone, isIOS].map(String).join('|');
+};
+
+const getEnvironmentServerSnapshot = () => null;
+
+const subscribeToEnvironment = (onStoreChange: () => void) => {
+  const standaloneQuery = window.matchMedia('(display-mode: standalone)');
+  standaloneQuery.addEventListener('change', onStoreChange);
+  window.addEventListener('storage', onStoreChange);
+
+  return () => {
+    standaloneQuery.removeEventListener('change', onStoreChange);
+    window.removeEventListener('storage', onStoreChange);
+  };
+};
 
 export const InstallPrompt = () => {
-  const [isIOS, setIsIOS] = useState(false);
-  // ハイドレーション時のチラつきを防ぐため初期値は true（非表示）
-  const [isStandalone, setIsStandalone] = useState(true); 
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isDismissed, setIsDismissed] = useState(true);
+  const environment = useSyncExternalStore(
+    subscribeToEnvironment,
+    getEnvironmentSnapshot,
+    getEnvironmentServerSnapshot,
+  );
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isDismissedForSession, setIsDismissedForSession] = useState(false);
 
   useEffect(() => {
-    // 非表示フラグの確認 (30日間は再表示しない)
-    const dismissed = localStorage.getItem('pwa-prompt-dismissed');
-    if (dismissed) {
-      const dismissedAt = parseInt(dismissed, 10);
-      if (Date.now() - dismissedAt < 1000 * 60 * 60 * 24 * 30) {
-        return; 
-      }
-    }
-    setIsDismissed(false);
-
-    // すでにPWA（ホーム画面）として開かれているかチェック
-    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || ('standalone' in navigator && (navigator as any).standalone);
-    setIsStandalone(!!isStandaloneMode);
-
-    // iOS判定 (Safariでの案内用)
-    const ua = window.navigator.userAgent;
-    const isIOSDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    setIsIOS(isIOSDevice);
-
     // Android (Chrome) のインストールダイアログ捕捉
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      if (isBeforeInstallPromptEvent(e)) {
+        setDeferredPrompt(e);
+      }
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
@@ -41,20 +68,26 @@ export const InstallPrompt = () => {
     };
   }, []);
 
+  if (environment === null) return null;
+
+  const [isDismissed, isStandalone, isIOS] = environment
+    .split('|')
+    .map(value => value === 'true');
+
   // すでにPWAとして起動しているか、非表示にされた場合は何も表示しない
-  if (isStandalone || isDismissed) return null;
+  if (isStandalone || isDismissed || isDismissedForSession) return null;
 
   // iOSでもなく、Androidのインストールダイアログも捕捉できていない場合は表示しない（PCブラウザ等）
   if (!isIOS && !deferredPrompt) return null;
 
   const dismiss = () => {
     localStorage.setItem('pwa-prompt-dismissed', Date.now().toString());
-    setIsDismissed(true);
+    setIsDismissedForSession(true);
   };
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
+      await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         dismiss(); // インストール成功したら非表示にする

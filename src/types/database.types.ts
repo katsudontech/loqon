@@ -71,7 +71,13 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      replace_timeline_markers: {
+        Args: {
+          p_markers: Json
+          p_project_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

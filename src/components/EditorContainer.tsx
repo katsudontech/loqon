@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useTimelineEditor } from '@/hooks/useTimelineEditor'
 import { useCachedMedia } from '@/hooks/useCachedMedia'
@@ -36,6 +36,9 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     const [currentPage, setCurrentPage] = useState(1)
     const [numPages, setNumPages] = useState<number | null>(null)
     const [isTimelineExpanded, setIsTimelineExpanded] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [saveError, setSaveError] = useState('')
+    const isSavingRef = useRef(false)
 
     const handleRecordPageTurn = () => {
         if (!audioState.isPlaying) {
@@ -59,9 +62,23 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     }
 
     const handleSaveButton = async () => {
-        await saveMarkers(projectId)
-        alert('保存しました')
-        router.push(`/${projectId}`)
+        if (isSavingRef.current) return
+
+        isSavingRef.current = true
+        setIsSaving(true)
+        setSaveError('')
+
+        try {
+            await saveMarkers(projectId)
+            alert('保存しました')
+            router.push(`/${projectId}`)
+        } catch (error) {
+            console.error('タイムラインの保存に失敗しました:', error)
+            setSaveError('保存に失敗しました。編集中の内容は残っています。時間をおいて再試行してください。')
+        } finally {
+            isSavingRef.current = false
+            setIsSaving(false)
+        }
     }
 
     return (
@@ -188,6 +205,11 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                             📄 次のページへ
                         </button>
                     </div>
+                    {saveError && (
+                        <p role="alert" aria-live="assertive" className="rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+                            {saveError}
+                        </p>
+                    )}
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage <= 1}
@@ -197,10 +219,10 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                     </button>
                     <button
                         onClick={handleSaveButton}
-                        disabled={markers.length === 0}
+                        disabled={isSaving}
                         className="w-full py-3 mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        <span>💾</span> 保存してプレイヤーへ
+                        <span>💾</span> {isSaving ? '保存中...' : '保存してプレイヤーへ'}
                     </button>
                 </div>
             </div>

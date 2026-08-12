@@ -18,6 +18,22 @@ export function useAudioPlayer() {
     playbackRate: 1,
   })
 
+  const play = useCallback(async () => {
+    if (audioRef.current) {
+      try {
+        await audioRef.current.play()
+      } catch (err) {
+        console.error('再生に失敗しました:', err)
+      }
+    }
+  }, [])
+
+  const pause = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+    }
+  }, [])
+
   // オーディオ要素から状態を同期する
   useEffect(() => {
     const audio = audioRef.current
@@ -55,24 +71,15 @@ export function useAudioPlayer() {
       navigator.mediaSession.setActionHandler('seekforward', () => {
         if (audioRef.current) audioRef.current.currentTime += 5
       })
-    }
-  }, [])
 
-  const play = useCallback(async () => {
-    if (audioRef.current) {
-      try {
-        await audioRef.current.play()
-      } catch (err) {
-        console.error('再生に失敗しました:', err)
+      return () => {
+        navigator.mediaSession.setActionHandler('play', null)
+        navigator.mediaSession.setActionHandler('pause', null)
+        navigator.mediaSession.setActionHandler('seekbackward', null)
+        navigator.mediaSession.setActionHandler('seekforward', null)
       }
     }
-  }, [])
-
-  const pause = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-    }
-  }, [])
+  }, [pause, play])
 
   const togglePlay = useCallback(() => {
     if (state.isPlaying) {
