@@ -1,36 +1,214 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ロックオン（Loqon）
 
-## Getting Started
+> ダンスチームやサークルのメンバー向けに、構成表と音源を時間軸で連動させ、構成確認と個人練習を効率化するWebアプリです。楽曲をパートごとに繰り返し再生でき、確認したい部分を集中的に練習できます。
 
-First, run the development server:
+**デモ:** 【https\:///loqon.katsudon.app】\
+&#x2A;*開発体制:** 個人開発
+
+\<!-- スクリーンショットを追加後、以下のコメントアウトを外してください -->
+
+\<!-- ![メイン画面]\(./docs/images/main.png) -->
+
+## 概要
+
+### 解決したかった課題
+
+ダンスの構成確認と音源を使った反復練習は、それぞれ専用のアプリで行える一方、両方を一つの流れで行うことが難しいという課題がありました。
+
+構成作成アプリの[ArrangeUs](https://arrangeus.app/)では、構成と音源を同期する機能が有料です。また、音源練習アプリの[Audipo](https://play.google.com/store/apps/details?id=jp.ne.sakura.ccice.audipo\&hl=ja)では、利用者が練習したい区間を自分で設定する必要があり、パートの少し前から再生して助走をつけたい場合には、開始位置を調整する手間がありました。
+
+### 解決方法
+
+ロックオンでは、構成表のPDFと音源を一つのプロジェクトに登録し、音源を再生しながらページの切り替わりとパートの区切りを記録できるようにしました。
+
+練習時には、再生位置に合わせて構成表が自動で切り替わります。また、記録したパートを選択して繰り返し再生できるほか、パート開始の5秒前から再生するリードイン機能により、実際に踊り始めるまでの助走を含めて練習できます。
+
+設定した内容はURLで共有できるため、各メンバーが同じ区切りを設定し直す必要もありません。
+
+## 主な機能
+
+- **構成表と音源の登録**\
+  構成表のPDFと音源ファイルを登録し、一つのプロジェクトとして管理できます。
+
+- **タイムライン編集**\
+  音源を再生しながら、構成表のページが切り替わる時刻やパートの区切りを記録できます。各パートには任意の名前も設定できます。
+
+- **構成表と音源の同期再生**\
+  音源の再生位置に合わせて、表示する構成表のページが自動的に切り替わります。
+
+- **パート別の反復練習**\
+  練習するパートを選択して繰り返し再生できます。再生速度の変更、パート内でのA-B区間指定、前後のパートへの移動、パート開始の5秒前から再生するリードインに対応しています。
+
+- **URLによる共有**\
+  プロジェクトをURLで共有できるため、各メンバーが構成やパートの区切りを設定し直す必要がありません。
+
+- **スマートフォンでの利用支援**\
+  ホーム画面への追加案内に加え、Media Session APIを利用したロック画面からの再生・一時停止・パート移動に対応しています。
+
+## 技術スタック
+
+| 分類        | 技術                                                                     | 用途                         |
+| --------- | ---------------------------------------------------------------------- | -------------------------- |
+| フロントエンド   | Next.js 16 / React 19 / TypeScript                                     | 画面表示、ルーティング、再生状態とタイムラインの管理 |
+| スタイリング    | Tailwind CSS 4                                                         | レスポンシブ対応を含むUIの構築           |
+| PDF表示     | react-pdf / PDF.js                                                     | 構成表PDFの表示とページ切り替え          |
+| バックエンド    | Next.js Server Actions                                                 | プロジェクト情報の作成・更新             |
+| データベース    | Supabase PostgreSQL                                                    | プロジェクト情報とタイムラインマーカーの保存     |
+| ファイルストレージ | Supabase Storage                                                       | 音源ファイルと構成表PDFの保存・配信        |
+| DB処理      | PostgreSQL RPC                                                         | タイムラインマーカーの入力検証と原子的な一括保存   |
+| ブラウザAPI   | HTMLAudioElement / Media Session API / localStorage / Web App Manifest | 音源再生、ロック画面操作、閲覧履歴、ホーム画面追加  |
+| インフラ      | Vercel                                                                 | Webアプリのホスティングとデプロイ         |
+| 品質管理      | ESLint / TypeScript                                                    | 静的解析と型チェック                 |
+
+## 技術的な工夫・苦労した点
+
+### 1. 音源と構成表の同期
+
+**課題:**\
+音源の再生位置と構成表のページを正確に対応させながら、同じデータをパート練習にも利用する必要がありました。
+
+**対応:**\
+音源の再生中にページ切り替えやパート区切りを記録し、時刻・ページ番号・パート名をタイムラインマーカーとして保存する設計にしました。再生時には、現在時刻以前で最も新しいマーカーを参照し、表示するページを算出しています。
+
+**結果:**\
+一つのタイムラインデータを使って、構成表の自動切り替えとパート別の反復練習を実現できました。
+
+### 2. LINE内ブラウザ利用時の案内
+
+**課題:**\
+プロジェクトURLをLINEで共有した場合、そのままLINE内ブラウザで開かれます。LINE内ブラウザでは、音源の再生やPDFの表示が正常に動作しない場合があり、利用者には不具合の原因や対処方法が分かりにくいという問題がありました。
+
+**対応:**\
+ユーザーエージェントからLINE内ブラウザで開かれていることを検知し、SafariやChromeなどの標準ブラウザで開き直すよう案内するポップアップを実装しました。ポップアップ内には、LINEのメニューから「他のアプリで開く」または「ブラウザで開く」を選択する手順も表示しています。
+
+**結果:**\
+アプリの主要機能を利用する前に、動作が安定したブラウザへ利用者を誘導できるようになりました。
+
+### 3. タイムライン保存時のデータ消失防止
+
+**課題:**\
+当初は既存マーカーの削除と新しいマーカーの登録を別々に実行していたため、削除後に登録が失敗すると、保存済みのタイムラインが失われる可能性がありました。
+
+**対応:**\
+削除と登録をPostgreSQL RPC内の一つのトランザクションにまとめました。入力値の検証もDB側で行い、途中で処理に失敗した場合は変更全体をロールバックするようにしました。
+
+フロントエンドではエラーを握りつぶさず、保存に失敗した場合は画面遷移せずに編集中の内容を残します。また、保存ボタンの連続操作による多重実行も防止しています。
+
+**結果:**\
+保存処理の途中でエラーが発生しても既存データが失われず、利用者がそのまま再試行できるようになりました。
+
+### 4. 音源とPDFのキャッシュ方法
+
+**課題:**\
+Cache Storage APIを使ってメディアをBlobへ変換する方式では、Blob URLの解放漏れ、音源全体のダウンロードが完了するまで再生できない問題、別プロジェクトの音源が再生される状態競合が発生しました。
+
+**対応:**\
+独自のBlob管理を廃止し、音源とPDFのURLを各要素へ直接渡して、ブラウザ標準のHTTPキャッシュとストリーミング処理に任せる設計へ変更しました。
+
+**結果:**\
+メディアの管理処理を単純化し、音源のストリーミング再生を妨げずにブラウザのキャッシュを利用できるようになりました。
+
+## 品質・セキュリティ
+
+### 品質
+
+- TypeScriptでSupabaseのテーブル、RPC、コンポーネント間のデータを型定義しています。
+- ESLintによる静的解析と、TypeScriptによる型チェックを実施しています。
+- Vercelへのデプロイ時にNext.jsの本番ビルドを実行しています。
+- タイムライン保存をDBトランザクションにまとめ、途中失敗によるデータ消失を防止しています。
+- 保存失敗時は成功表示や画面遷移を行わず、編集中のデータを画面上に保持します。
+- 保存ボタンの多重実行を防止しています。
+
+### セキュリティ・アクセス設計
+
+- SupabaseのURLと公開用anon keyを環境変数で管理し、強い権限を持つservice role keyはクライアントへ配置していません。
+- タイムライン保存用RPCでは、プロジェクトID、JSON形式、時刻、ページ番号などの入力値をDB側でも検証しています。
+- RPCは`SECURITY INVOKER`で実行し、空の`search_path`を設定しています。
+- プロジェクトIDには`crypto.randomUUID()`で生成したUUIDを使用しています。
+- 友人やサークル内での利用を想定し、現時点では認証を導入せず、共有URLを知っている利用者が閲覧・編集できる仕様です。所有者だけに編集を制限する認証・認可は、今後の改善項目としています。
+
+## 開発体制・担当範囲
+
+個人開発として、課題整理、要件定義、UI・データベース設計、フロントエンド・バックエンドの実装、動作確認、デプロイまでを担当しました。
+
+### 生成AIの利用
+
+生成AIを、実装方針の比較、コードのたたき台、デバッグ、リファクタリング、コードレビューに利用しました。
+
+要件と仕様の決定、提案内容を採用するかの判断、既存コードとの統合、変更差分の確認、最終的な動作確認は自分で行っています。
+
+## ローカルでの起動方法
+
+### 必要な環境
+
+- Node.js 20.9以上
+- npm
+- Supabaseプロジェクト
+
+### セットアップ
+
+リポジトリを複製し、依存パッケージをインストールします。
+
+```bash
+git clone https://github.com/katsudontech/loqon.git
+cd loqon
+npm install
+```
+
+プロジェクト直下に`.env.local`を作成し、SupabaseのProject URLと公開用anon keyを設定します。
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+Supabaseでは、次のリソースが必要です。
+
+- プロジェクト情報を保存する`projects`テーブル
+- タイムラインを保存する`timeline_markers`テーブル
+- 音源とPDFを保存する公開Storageバケット`projects`
+- タイムラインを原子的に保存する`replace_timeline_markers`関数
+
+タイムライン保存用の関数は、次のマイグレーションをSupabaseへ適用します。
+
+```text
+supabase/migrations/20260812000000_replace_timeline_markers_atomically.sql
+```
+
+開発サーバーを起動します。
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで[http://localhost:3000](http://localhost:3000)を開きます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 確認コマンド
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```
 
-## Learn More
+## 制約・今後の改善
 
-To learn more about Next.js, take a look at the following resources:
+### 現在の制約
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 認証機能は導入しておらず、共有URLを知っている利用者はプロジェクトを閲覧・編集できます。
+- 友人やサークルなど、信頼できるメンバー間での利用を想定しています。
+- LINE内ブラウザでは音源やPDFが正常に動作しない場合があるため、SafariまたはChromeで開く必要があります。
+- 自動テストとGitHub ActionsによるCIは未導入です。
+- 新しいSupabase環境をゼロから構築するための初期スキーマは、まだマイグレーションとして整備していません。
+- オフラインでの利用には対応していません。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 今後の改善
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] Supabase Authを導入し、プロジェクトの所有者だけが編集できるようにする
+- [ ] 閲覧用URLと編集用URLを分ける
+- [ ] RLSによるデータベースとStorageのアクセス制御を強化する
+- [ ] 初期テーブル、Storage Policy、DB関数を含むマイグレーションを整備する
+- [ ] `.env.example`を追加し、ローカル環境の構築手順を再現可能にする
+- [ ] タイムライン処理の単体テストと主要操作のE2Eテストを追加する
+- [ ] GitHub Actionsでlint、型チェック、テスト、ビルドを自動実行する
+- [ ] オフライン再生とキャッシュ管理を改善する
