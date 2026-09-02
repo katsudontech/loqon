@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { getPublicProject, getPublicTimelineMarkers } from "@/lib/projects"
 import { EditorContainer } from "@/components/EditorContainer"
 import Link from "next/link"
 import { convertDbRowsToMarkers } from "@/lib/timeline"
@@ -10,25 +10,14 @@ type Props = {
 export default async function EditPage({ params }: Props) {
     const { projectId } = await params;
 
-    const { data: project, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single()
-
-    if (error) return <div className="p-8 text-red-500">Error: {error.message}</div>
+    const project = await getPublicProject(projectId)
     if (!project) return <div className="p-8">Project not found</div>
 
     const pdfUrl = project.pdf_url;
     const audioUrl = project.audio_url;
 
-    const { data: timelines, error: timelinesError } = await supabase
-        .from('timeline_markers')
-        .select('*')
-        .eq('project_id', projectId);
-
-    if (timelinesError) return <div className="p-8 text-red-500">Error: {timelinesError.message}</div>
-    const initialMarkers = timelines ? convertDbRowsToMarkers(timelines) : [];
+    const timelines = await getPublicTimelineMarkers(projectId)
+    const initialMarkers = convertDbRowsToMarkers(timelines)
 
     return (
         <div className="h-[calc(100dvh-4rem)] w-full bg-zinc-950 flex flex-col overflow-hidden">

@@ -1,5 +1,5 @@
 import { ProjectForm } from '@/components/ProjectForm'
-import { supabase } from '@/lib/supabase'
+import { getPublicProject } from '@/lib/projects'
 import Link from 'next/link'
 
 type Props = {
@@ -9,13 +9,7 @@ type Props = {
 export default async function SettingsPage({ params }: Props) {
     const { projectId } = await params;
 
-    const { data: project, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single()
-
-    if (error) return <div className="p-8 text-red-500">Error: {error.message}</div>
+    const project = await getPublicProject(projectId)
     if (!project) return <div className="p-8">Project not found</div>
 
     return (

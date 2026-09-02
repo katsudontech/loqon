@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { getPublicProject, getPublicTimelineMarkers } from "@/lib/projects"
 import { PlayerContainer } from "@/components/PlayerContainer"
 import { ShareButton } from "@/components/ShareButton"
 import { RecentProjectTracker } from "@/components/RecentProjectTracker"
@@ -10,30 +10,16 @@ type Props = {
 export default async function PlayerPage({ params }: Props) {
     const { projectId } = await params;
 
-    // プロジェクト本体の取得
-    const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single()
+    const project = await getPublicProject(projectId)
 
-    if (projectError || !project) {
+    if (!project) {
         return <div className="p-8 text-red-500">Project not found</div>
     }
 
-    // マーカー一覧の取得（start_timeで昇順ソート）
-    const { data: markersData, error: markersError } = await supabase
-        .from('timeline_markers')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('start_time', { ascending: true })
-
-    if (markersError) {
-        console.error("Error fetching markers:", markersError)
-    }
+    const markersData = await getPublicTimelineMarkers(projectId)
 
     // DBのtimeline_markers形式を、Playerで扱いやすいMarker型にマッピングする
-    const markers = (markersData || []).map(m => ({
+    const markers = markersData.map(m => ({
         id: m.id,
         page: m.page_number,
         time: m.start_time,
