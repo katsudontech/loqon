@@ -60,7 +60,7 @@ export default function SelectPage() {
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Recent Showcases</h1>
+            <h1 className="text-3xl font-bold text-white tracking-tight">最近のショーケース</h1>
             <p className="text-zinc-500 mt-2">最近開いたプロジェクト（ショーケース）</p>
           </div>
           <Link
@@ -93,6 +93,7 @@ export default function SelectPage() {
           <div className="space-y-3">
             {projects.map((p) => (
               <button
+                type="button"
                 key={p.id}
                 onClick={() => router.push(`/${p.id}`)}
                 className="w-full text-left flex items-center justify-between p-5 bg-zinc-900 hover:bg-zinc-800/80 rounded-2xl border border-zinc-800 hover:border-indigo-500/30 transition-all group active:scale-[0.98]"

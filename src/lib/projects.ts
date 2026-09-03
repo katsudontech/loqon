@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { cache } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/database.types'
 import { convertDbRowsToMarkers, type Marker } from '@/lib/timeline'
@@ -20,7 +21,7 @@ export type PublicProject = Pick<
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-export async function getPublicProject(projectId: string): Promise<PublicProject | null> {
+export const getPublicProject = cache(async (projectId: string): Promise<PublicProject | null> => {
   if (!uuidPattern.test(projectId)) return null
 
   const { data, error } = await supabase
@@ -33,7 +34,7 @@ export async function getPublicProject(projectId: string): Promise<PublicProject
   }
 
   return data
-}
+})
 
 export async function getPublicTimelineMarkers(
   projectId: string,

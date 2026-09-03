@@ -8,6 +8,7 @@ type Props = {
   togglePlay: () => void;
   seekTo: (time: number) => void;
   setPlaybackRate: (rate: number) => void;
+  playbackError?: string;
 }
 
 export function AudioControls({
@@ -17,7 +18,8 @@ export function AudioControls({
   playbackRate,
   togglePlay,
   seekTo,
-  setPlaybackRate
+  setPlaybackRate,
+  playbackError = '',
 }: Props) {
   
   // 秒数を MM:SS の形式に変換する便利関数
@@ -37,6 +39,7 @@ export function AudioControls({
           {formatTime(currentTime)}
         </span>
         <input
+          aria-label="再生位置"
           type="range"
           min={0}
           max={duration || 100}
@@ -55,6 +58,7 @@ export function AudioControls({
         {/* 再生速度変更 */}
         <div className="flex items-center gap-2">
           <select
+            aria-label="再生速度"
             value={playbackRate}
             onChange={(e) => setPlaybackRate(Number(e.target.value))}
             className="bg-zinc-800 border border-zinc-700 text-xs font-medium text-zinc-300 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
@@ -70,7 +74,10 @@ export function AudioControls({
 
         {/* 再生・一時停止ボタン */}
         <button
+          type="button"
           onClick={togglePlay}
+          aria-label={isPlaying ? '一時停止' : '再生'}
+          aria-pressed={isPlaying}
           className="w-14 h-14 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]"
         >
           {isPlaying ? (
@@ -89,6 +96,7 @@ export function AudioControls({
         {/* デザインを真ん中揃えにするためのスペーサー */}
         <div className="w-[60px]" />
       </div>
+      {playbackError && <p role="status" aria-live="assertive" className="text-center text-sm text-red-300">{playbackError}</p>}
     </div>
   )
 }

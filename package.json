@@ -1,11 +1,11 @@
 {
-  "name": "lock-on",
+  "name": "loqon",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "predev": "node scripts/copy-pdf-assets.mjs",
-    "build": "next build",
+    "build": "next build --webpack",
     "prebuild": "node scripts/copy-pdf-assets.mjs",
     "start": "next start",
     "lint": "eslint .",

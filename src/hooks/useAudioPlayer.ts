@@ -6,6 +6,7 @@ type AudioPlayerState = {
   currentTime: number
   duration: number
   playbackRate: number
+  playbackError: string
 }
 
 export function useAudioPlayer() {
@@ -16,14 +17,17 @@ export function useAudioPlayer() {
     currentTime: 0,
     duration: 0,
     playbackRate: 1,
+    playbackError: '',
   })
 
   const play = useCallback(async () => {
     if (audioRef.current) {
       try {
         await audioRef.current.play()
+        setState(s => ({ ...s, playbackError: '' }))
       } catch (err) {
         console.error('再生に失敗しました:', err)
+        setState(s => ({ ...s, playbackError: '音源を再生できませんでした。再生ボタンをもう一度お試しください。' }))
       }
     }
   }, [])
@@ -44,12 +48,14 @@ export function useAudioPlayer() {
     const onPlay = () => setState(s => ({ ...s, isPlaying: true }))
     const onPause = () => setState(s => ({ ...s, isPlaying: false }))
     const onRateChange = () => setState(s => ({ ...s, playbackRate: audio.playbackRate }))
+    const onError = () => setState(s => ({ ...s, isPlaying: false, playbackError: '音源の読み込みに失敗しました。' }))
 
     audio.addEventListener('timeupdate', updateTime)
     audio.addEventListener('loadedmetadata', updateDuration)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
     audio.addEventListener('ratechange', onRateChange)
+    audio.addEventListener('error', onError)
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime)
@@ -57,6 +63,7 @@ export function useAudioPlayer() {
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
       audio.removeEventListener('ratechange', onRateChange)
+      audio.removeEventListener('error', onError)
     }
   }, [])
 

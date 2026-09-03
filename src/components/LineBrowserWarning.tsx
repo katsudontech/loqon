@@ -28,6 +28,8 @@ export function LineBrowserWarning() {
                     を選択し、SafariやChromeで開き直してください。
                 </p>
                 <button 
+                    type="button"
+                    aria-label="案内を閉じる"
                     onClick={() => setIsDismissed(true)}
                     className="mt-2 text-zinc-500 text-xs underline hover:text-zinc-400 transition-colors"
                 >

@@ -14,10 +14,10 @@ export default function Home() {
         </div>
 
         <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
-          Sync your <br className="hidden sm:block" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-            formations
-          </span> & <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">music</span>
+            フォーメーション
+          </span> と<br className="hidden sm:block" />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">音楽</span>を同期
         </h1>
 
         <p className="text-lg sm:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">

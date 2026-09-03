@@ -1,7 +1,7 @@
 {
   "name": "Loqon",
   "short_name": "Loqon",
-  "description": "Dance Formation & Audio Sync",
+  "description": "構成図と音源を同期するダンス練習アプリ",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",
