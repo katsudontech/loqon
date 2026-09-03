@@ -113,13 +113,7 @@ export const InstallPrompt = () => {
       </div>
       
       <div className="text-zinc-300 text-sm leading-relaxed mb-4 bg-zinc-950/50 p-3 rounded-xl border border-zinc-800/50">
-        アプリを「ホーム画面に追加（PWA化）」すると、<strong>通信量が大幅に削減</strong>されます！<br />
-        <span className="text-red-400 font-bold text-[13px] mt-2 block flex items-start gap-1.5">
-          <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          逆にしないと、7日以上経つと再び音源のダウンロード（通信）が始まってしまいます。
-        </span>
+        「ホーム画面に追加」すると、ブラウザを開かずにすぐアクセスできます。
       </div>
 
       {isIOS ? (

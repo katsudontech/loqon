@@ -2,7 +2,6 @@
 import { useRef, useState } from 'react'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useTimelineEditor } from '@/hooks/useTimelineEditor'
-import { useCachedMedia } from '@/hooks/useCachedMedia'
 import { AudioControls } from '@/components/AudioControls'
 import { PDFViewerWrapper } from '@/components/PDFViewerWrapper'
 import { useRouter } from 'next/navigation'
@@ -25,10 +24,6 @@ type Props = {
 
 export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], projectId }: Props) => {
     const router = useRouter()
-
-    // URLをキャッシュストレージから取得するカスタムフック
-    const { cachedUrl: localAudioUrl, isCaching: isAudioCaching } = useCachedMedia(audioUrl)
-    const { cachedUrl: localPdfUrl, isCaching: isPdfCaching } = useCachedMedia(pdfUrl)
 
     const { audioRef, ...audioState } = useAudioPlayer()
     const { markers, recordMarker, deleteMarker, updateMarkerName, clearMarkers, saveMarkers } = useTimelineEditor(initialMarkers)
@@ -84,15 +79,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     return (
         <div className="flex flex-col w-full h-full overflow-hidden relative">
             {/* 隠しオーディオ要素 */}
-            <audio ref={audioRef} src={localAudioUrl} preload="auto" />
-
-            {/* ダウンロード中表示 */}
-            {(isAudioCaching || isPdfCaching) && (
-                <div className="absolute top-2 left-2 right-2 z-50 bg-indigo-500/90 text-white text-xs text-center py-2 px-4 rounded-lg shadow-lg flex justify-center items-center gap-2">
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    初回の読み込みのため、メディアファイルをキャッシュに保存しています...
-                </div>
-            )}
+            <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
             {/* タイムライン（折りたたみ式・最上部） */}
             <div className="w-full shrink-0 bg-zinc-900 border-b border-zinc-800 flex flex-col z-20 shadow-md">
@@ -157,30 +144,16 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                 )}
             </div>
 
-            {/* PDFビューア（縦並び・スクロール） */}
+            {/* PDFビューア（現在と次のページを一つのDocumentで共有） */}
             <div className="flex-1 w-full overflow-y-auto bg-zinc-950 p-2 sm:p-4">
                 <div className="flex flex-col gap-4">
-                    {/* 現在のページ */}
-                    <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl relative flex flex-col shrink-0">
-                        <div className="bg-zinc-800 text-center text-zinc-300 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-700 shrink-0">
-                            現在のページ ({currentPage}P)
-                        </div>
-                        <div className="w-full relative flex justify-center bg-black/20">
-                            <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} onDocumentLoadSuccess={setNumPages} fitToContainer={false} />
-                        </div>
-                    </div>
-                    
-                    {/* 次のページ */}
-                    {numPages && currentPage < numPages && (
-                        <div className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-xl relative flex flex-col opacity-80 shrink-0">
-                            <div className="bg-zinc-800/50 text-center text-zinc-400 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-800 shrink-0">
-                                次のページ ({currentPage + 1}P)
-                            </div>
-                            <div className="w-full relative flex justify-center bg-black/20">
-                                <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage + 1} fitToContainer={false} />
-                            </div>
-                        </div>
-                    )}
+                    <PDFViewerWrapper
+                        url={pdfUrl}
+                        currentPage={currentPage}
+                        pages={numPages && currentPage < numPages ? [currentPage, currentPage + 1] : [currentPage]}
+                        onDocumentLoadSuccess={setNumPages}
+                        fitToContainer={false}
+                    />
                 </div>
             </div>
 

@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "predev": "node scripts/copy-pdf-assets.mjs",
     "build": "next build",
+    "prebuild": "node scripts/copy-pdf-assets.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

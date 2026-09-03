@@ -1,7 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
-import { useCachedMedia } from '@/hooks/useCachedMedia'
 import { AudioControls } from '@/components/AudioControls'
 import { PDFViewerWrapper } from '@/components/PDFViewerWrapper'
 
@@ -20,10 +19,6 @@ type Props = {
 }
 
 export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
-    // URLをキャッシュストレージから取得するカスタムフック
-    const { cachedUrl: localAudioUrl, isCaching: isAudioCaching } = useCachedMedia(audioUrl)
-    const { cachedUrl: localPdfUrl, isCaching: isPdfCaching } = useCachedMedia(pdfUrl)
-
     const { audioRef, ...audioState } = useAudioPlayer()
 
     // モード管理: 'full' = 全体再生, 'part' = パート練習
@@ -201,19 +196,15 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     return (
         <div className="flex flex-col w-full h-full overflow-hidden relative">
             {/* 隠しオーディオ要素 */}
-            <audio ref={audioRef} src={localAudioUrl} preload="auto" />
-
-            {/* ダウンロード中表示 (画面上部に固定) */}
-            {(isAudioCaching || isPdfCaching) && (
-                <div className="absolute top-2 left-2 right-2 z-50 bg-indigo-500/90 text-white text-xs text-center py-2 px-4 rounded-lg shadow-lg flex justify-center items-center gap-2">
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    初回の読み込みのため、メディアファイルをキャッシュに保存しています...
-                </div>
-            )}
+            <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
             {/* PDFビューア (スクロールしないように画面にフィットさせる領域) */}
             <div className="flex-1 w-full overflow-hidden bg-zinc-950 flex flex-col relative">
-                <PDFViewerWrapper url={localPdfUrl} currentPage={currentPage} />
+                <PDFViewerWrapper
+                    url={pdfUrl}
+                    currentPage={currentPage}
+                    renderStandbyPage
+                />
             </div>
 
             {/* 下部固定コントロール領域 */}
