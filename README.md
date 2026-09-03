@@ -54,7 +54,7 @@
 | DB処理      | PostgreSQL RPC                                                         | タイムラインマーカーの入力検証と原子的な一括保存   |
 | ブラウザAPI   | HTMLAudioElement / Media Session API / localStorage / Web App Manifest | 音源再生、ロック画面操作、閲覧履歴、ホーム画面追加  |
 | インフラ      | Vercel                                                                 | Webアプリのホスティングとデプロイ         |
-| 品質管理      | ESLint / TypeScript                                                    | 静的解析と型チェック                 |
+| 品質管理      | ESLint / TypeScript / Vitest / jsdom / GitHub Actions                  | 静的解析、型チェック、タイムライン単体テスト、CI |
 
 ## 技術的な工夫・苦労した点
 
@@ -110,6 +110,8 @@ Cache Storage APIを使ってメディアをBlobへ変換する方式では、Bl
 
 - TypeScriptでSupabaseのテーブル、RPC、コンポーネント間のデータを型定義しています。
 - ESLintによる静的解析と、TypeScriptによる型チェックを実施しています。
+- Vitest（jsdom環境）でタイムライン変換処理を単体テストしています。
+- GitHub Actionsでlint、型チェック、単体テスト、本番ビルドを自動実行しています。
 - Vercelへのデプロイ時にNext.jsの本番ビルドを実行しています。
 - タイムライン保存をDBトランザクションにまとめ、途中失敗によるデータ消失を防止しています。
 - 保存失敗時は成功表示や画面遷移を行わず、編集中のデータを画面上に保持します。
@@ -137,7 +139,7 @@ Cache Storage APIを使ってメディアをBlobへ変換する方式では、Bl
 
 ### 必要な環境
 
-- Node.js 20.9以上
+- Node.js 20.20.1以上、21未満（`.nvmrc`では20.20.1を指定）
 - npm
 - Supabaseプロジェクト
 
@@ -151,11 +153,17 @@ cd loqon
 npm install
 ```
 
-プロジェクト直下に`.env.local`を作成し、SupabaseのProject URLと公開用anon keyを設定します。
+プロジェクト直下で`.env.example`を`.env.local`へコピーし、SupabaseのProject URLと公開用anon keyを設定します。`.env.example`には値を記入せず、実際の値はローカルの`.env.local`だけに保存してください。
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local`を編集して、次の2つの値を設定します。
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 Supabaseでは、次のリソースが必要です。
@@ -183,9 +191,14 @@ npm run dev
 
 ```bash
 npm run lint
-npx tsc --noEmit
+npm run typecheck
+npm run test:run
 npm run build
 ```
+
+`npm test`は変更を監視するVitestを起動します。CIと同じ一度きりのテスト実行には`npm run test:run`を使います。
+
+GitHub ActionsのCIは、`main`へのpushとpull requestで実行されます。Node.js 20.20.1を使い、`npm ci`の後にlint、型チェック、単体テスト、本番ビルドを順に確認します。
 
 ## 制約・今後の改善
 
@@ -194,7 +207,6 @@ npm run build
 - 認証機能は導入しておらず、共有URLを知っている利用者はプロジェクトを閲覧・編集できます。
 - 友人やサークルなど、信頼できるメンバー間での利用を想定しています。
 - LINE内ブラウザでは音源やPDFが正常に動作しない場合があるため、SafariまたはChromeで開く必要があります。
-- 自動テストとGitHub ActionsによるCIは未導入です。
 - 新しいSupabase環境をゼロから構築するための初期スキーマは、まだマイグレーションとして整備していません。
 - オフラインでの利用には対応していません。
 
@@ -204,7 +216,5 @@ npm run build
 - [ ] 閲覧用URLと編集用URLを分ける
 - [ ] RLSによるデータベースとStorageのアクセス制御を強化する
 - [ ] 初期テーブル、Storage Policy、DB関数を含むマイグレーションを整備する
-- [ ] `.env.example`を追加し、ローカル環境の構築手順を再現可能にする
-- [ ] タイムライン処理の単体テストと主要操作のE2Eテストを追加する
-- [ ] GitHub Actionsでlint、型チェック、テスト、ビルドを自動実行する
+- [ ] 主要操作のE2Eテストを追加する
 - [ ] オフライン再生とキャッシュ管理を改善する
