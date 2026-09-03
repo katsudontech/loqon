@@ -2,7 +2,11 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { saveProjectRecord } from '@/app/actions'
+import { discardProjectUploads, saveProjectRecord } from '@/app/actions'
+import {
+  MAX_PROJECT_TITLE_LENGTH,
+  uploadProjectFiles,
+} from '@/lib/upload'
 
 type ProjectType = {
   id: string;
@@ -27,57 +31,52 @@ export function ProjectForm({ project }: Props) {
 
     const formData = new FormData(e.currentTarget);
     const title = formData.get('title') as string;
-    const audioFile = formData.get('audio') as File | null;
-    const pdfFile = formData.get('pdf') as File | null;
+    const audioEntry = formData.get('audio');
+    const pdfEntry = formData.get('pdf');
+    // An unselected file input is represented by a nameless zero-byte File.
+    // A named zero-byte file remains selected and is rejected by validation.
+    const audioFile = audioEntry instanceof File && audioEntry.name ? audioEntry : null;
+    const pdfFile = pdfEntry instanceof File && pdfEntry.name ? pdfEntry : null;
 
     if (!isUpdate) {
-      if (!audioFile || !pdfFile || audioFile.size === 0 || pdfFile.size === 0) {
+      if (!audioFile || !pdfFile) {
         setErrorMsg('音源とPDFファイルは必須です');
         setPending(false);
         return;
       }
     }
 
-    try {
-      const projectId = isUpdate ? project.id : crypto.randomUUID();
-      
-      let audioUrl = null;
-      if (audioFile && audioFile.size > 0) {
-        const audioExtension = audioFile.name.split('.').pop();
-        const audioPath = `${projectId}/audio.${audioExtension}`;
-        
-        const { error: audioError } = await supabase.storage
-          .from('projects')
-          .upload(audioPath, audioFile, {
-            contentType: audioFile.type,
-            cacheControl: '31536000',
-            upsert: true
-          });
-          
-        if (audioError) throw audioError;
-        audioUrl = supabase.storage.from('projects').getPublicUrl(audioPath).data.publicUrl + '?t=' + Date.now();
-      }
+    const projectId = isUpdate ? project.id : crypto.randomUUID();
+    let uploadedUrls: string[] = [];
 
-      let pdfUrl = null;
-      if (pdfFile && pdfFile.size > 0) {
-        const pdfPath = `${projectId}/formation.pdf`;
-        
-        const { error: pdfError } = await supabase.storage
-          .from('projects')
-          .upload(pdfPath, pdfFile, {
-            contentType: pdfFile.type,
-            cacheControl: '31536000',
-            upsert: true
-          });
-          
-        if (pdfError) throw pdfError;
-        pdfUrl = supabase.storage.from('projects').getPublicUrl(pdfPath).data.publicUrl + '?t=' + Date.now();
+    const cleanupUploads = async (urls: string[]) => {
+      if (urls.length === 0) return
+      try {
+        await discardProjectUploads(projectId, urls)
+      } catch (error) {
+        console.warn('アップロード済みファイルのクリーンアップに失敗しました:', error)
       }
+    }
+
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      if (!supabaseUrl) throw new Error('Supabaseの設定がありません')
+      const bucket = supabase.storage.from('projects')
+      const { audioUrl, pdfUrl } = await uploadProjectFiles({
+        projectId,
+        supabaseUrl,
+        audioFile,
+        pdfFile,
+        upload: (path, file, options) => bucket.upload(path, file, options),
+        discardPartialUploads: cleanupUploads,
+      })
+      uploadedUrls = [audioUrl, pdfUrl].filter((url): url is string => Boolean(url))
 
       // DB保存とリダイレクトはServer Actionで行う
       await saveProjectRecord(projectId, title, audioUrl, pdfUrl, isUpdate);
       
     } catch (err: unknown) {
+      await cleanupUploads(uploadedUrls)
       console.error('アップロードエラー:', err);
       const message = typeof err === 'object'
         && err !== null
@@ -107,6 +106,7 @@ export function ProjectForm({ project }: Props) {
           id="title"
           name="title"
           defaultValue={project?.title || ''}
+          maxLength={MAX_PROJECT_TITLE_LENGTH}
           placeholder="例: 2026 Showcase HipHop"
           className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-zinc-600 transition-all"
         />
@@ -121,7 +121,7 @@ export function ProjectForm({ project }: Props) {
           type="file"
           id="audio"
           name="audio"
-          accept="audio/*"
+          accept="audio/mpeg,audio/wav,audio/x-wav,audio/wave,audio/ogg,audio/flac,audio/mp4,audio/aac,.mp3,.wav,.ogg,.oga,.flac,.m4a,.mp4,.aac"
           required={!isUpdate}
           className="w-full text-sm text-zinc-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer"
         />

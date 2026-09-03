@@ -59,6 +59,22 @@ begin
       message = 'project id must not be empty';
   end if;
 
+  if p_audio_url is not null
+    and public.is_project_storage_url(p_audio_url, p_project_id, 'audio') is not true
+  then
+    raise exception using
+      errcode = '22023',
+      message = 'audio URL must be an immutable project-scoped Storage URL';
+  end if;
+
+  if p_pdf_url is not null
+    and public.is_project_storage_url(p_pdf_url, p_project_id, 'pdf') is not true
+  then
+    raise exception using
+      errcode = '22023',
+      message = 'PDF URL must be an immutable project-scoped Storage URL';
+  end if;
+
   update public.projects
   set
     title = coalesce(nullif(btrim(p_title), ''), '名称未設定プロジェクト'),
@@ -83,9 +99,12 @@ revoke all on function public.get_public_project(uuid) from public;
 revoke all on function public.get_public_timeline_markers(uuid) from public;
 revoke all on function public.update_project_by_id(uuid, text, text, text) from public;
 
-grant execute on function public.get_public_project(uuid) to anon, authenticated;
+grant execute on function public.get_public_project(uuid) to anon, authenticated, service_role;
 grant execute on function public.get_public_timeline_markers(uuid) to anon, authenticated;
-grant execute on function public.update_project_by_id(uuid, text, text, text) to anon, authenticated;
+grant execute on function public.update_project_by_id(uuid, text, text, text) to service_role;
+
+comment on function public.update_project_by_id(uuid, text, text, text) is
+  'Called by the validated server action. The UI still uses the anonymous UUID capability model; Auth ownership is intentionally absent.';
 
 -- Timeline replacement must keep working after direct table SELECT is revoked.
 -- It still requires a known project UUID and intentionally remains editable by

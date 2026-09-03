@@ -119,9 +119,9 @@ Cache Storage APIを使ってメディアをBlobへ変換する方式では、Bl
 
 ### セキュリティ・アクセス設計
 
-- SupabaseのURLと公開用anon keyを環境変数で管理し、強い権限を持つservice role keyはクライアントへ配置していません。
+- SupabaseのURLと公開用anon keyに加え、プロジェクト保存とStorage補償削除専用のservice role keyをサーバー環境変数で管理します。service role keyは`NEXT_PUBLIC_`を付けず、Client Componentへimportされないserver-onlyモジュールだけが参照します。
 - タイムライン保存用RPCでは、プロジェクトID、JSON形式、時刻、ページ番号などの入力値をDB側でも検証しています。
-- RPCは`SECURITY INVOKER`で実行し、空の`search_path`を設定しています。
+- RPCは空の`search_path`を設定し、直接テーブル権限を付与せず、既知UUIDに限定した`SECURITY DEFINER`関数だけを公開しています。プロジェクト作成・更新RPCはservice roleだけが実行できます。
 - プロジェクトIDには`crypto.randomUUID()`で生成したUUIDを使用しています。
 - 友人やサークル内での利用を想定し、現時点では認証を導入せず、共有URLを知っている利用者が閲覧・編集できる仕様です。所有者だけに編集を制限する認証・認可は、今後の改善項目としています。
 
@@ -153,31 +153,55 @@ cd loqon
 npm install
 ```
 
-プロジェクト直下で`.env.example`を`.env.local`へコピーし、SupabaseのProject URLと公開用anon keyを設定します。`.env.example`には値を記入せず、実際の値はローカルの`.env.local`だけに保存してください。
+プロジェクト直下で`.env.example`を`.env.local`へコピーし、SupabaseのProject URL、公開用anon key、サーバー専用service role keyを設定します。`.env.example`には値を記入せず、実際の値はローカルの`.env.local`とデプロイ先のサーバー環境変数だけに保存してください。
 
 ```bash
 cp .env.example .env.local
 ```
 
-`.env.local`を編集して、次の2つの値を設定します。
+`.env.local`を編集して、次の3つの値を設定します。`SUPABASE_SERVICE_ROLE_KEY`には絶対に`NEXT_PUBLIC_`を付けないでください。
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Supabaseでは、次のリソースが必要です。
+Supabaseでは、次のリソースが必要です。初期スキーマ、RPC、Storage設定はマイグレーションで再現できます。
 
 - プロジェクト情報を保存する`projects`テーブル
 - タイムラインを保存する`timeline_markers`テーブル
-- 音源とPDFを保存する公開Storageバケット`projects`
-- タイムラインを原子的に保存する`replace_timeline_markers`関数
+- 音源とPDFを保存する公開Storageバケット`projects`（最大50MB、許可MIMEタイプは音源の対応形式と`application/pdf`）
+- `create_project_by_id`、`update_project_by_id`、`replace_timeline_markers`関数
 
-タイムライン保存用の関数は、次のマイグレーションをSupabaseへ適用します。
+Supabase CLIで、ファイル名順に次のマイグレーションを適用します。新規環境では全てを、既存環境では未適用分を適用してください。リポジトリにはSQLファイルを追加するだけで、本番へ自動適用は行いません。
 
 ```text
+supabase/migrations/20260801000000_initial_schema_and_storage.sql
 supabase/migrations/20260812000000_replace_timeline_markers_atomically.sql
+supabase/migrations/20260819000000_prevent_project_enumeration.sql
+supabase/migrations/20260820000000_harden_project_writes_and_storage.sql
 ```
+
+初期マイグレーションはテーブル、FK、インデックス、入力チェック、Storageバケットと必要な匿名Storage INSERT policyを整備します。既存行を削除せず、既存データと衝突する可能性があるFK・チェックは`NOT VALID`で追加して新規書き込みから適用します。必要に応じて既存データを確認してから`VALIDATE CONSTRAINT`を実行してください。公開バケットの既知URLからの読み取りは維持しますが、DBの直接SELECTとStorageのSELECT/list policyは付与しないため、プロジェクト列挙はできません。
+
+既存環境ですでに`20260812000000`と`20260819000000`が適用済みの場合、今回追加した初期マイグレーションは履歴上それらより古いため、まず対象を必ず確認してdry-runし、古い未適用分も含めて適用します。`20260820000000`が最後に最終権限を再適用するため、fresh環境と既存環境の到達状態は同じです。
+
+```bash
+supabase migration list
+supabase db push --dry-run --include-all
+supabase db push --include-all
+```
+
+この変更にdown migrationはありません。テーブル・列・既存行・既存オブジェクトを落とすロールバックは行わず、問題時はforward migrationで修正してください。新しいアプリは旧アプリと異なるimmutable pathとStorage policyを前提にするため、DB migration適用後にアプリだけを旧版へ戻すと旧形式のアップロードが失敗します。ロールバック時は先に互換policyを別のforward migrationとして設計し、データ削除やmigration履歴の書き換えは避けてください。
+
+デプロイ時は、先にサーバー環境へ`SUPABASE_SERVICE_ROLE_KEY`を登録し、migration適用と新アプリの切り替えを同じメンテナンス枠で行ってください。最終migration後は旧アプリのanon RPCと同一パス更新が拒否され、新アプリをmigrationより先に公開すると新RPC権限とStorage policyがまだないため、どちらも単独で先行させない運用が必要です。
+
+### アップロードの整合性
+
+音源とPDFはブラウザからStorageへ直接送信されるため、Next.js Server Actionの`bodySizeLimit`は設定していません（設定してもStorageへの直接通信には適用されません）。サイズ上限とMIME allowlistはStorageバケット、拡張子・MIME・マジックバイトはクライアントとServer Actionの両方で検査します。ファイルはプロジェクトUUID配下のランダムなバージョンパスへ`upsert`なしで保存し、両方のアップロード後にDBを更新します。DBの作成・更新RPCはanonから直接実行できず、Server Actionが設定済みSupabase origin、bucket、projectId、オブジェクト内容を検証してからserver-onlyのservice roleで呼び出します。認証は追加していないため、UUIDを知る利用者が編集できるモデル自体は変わりません。
+
+DB更新に失敗した場合は新しいオブジェクトをベストエフォートで削除し、更新成功後に置き換え前のオブジェクトを削除します。ブラウザ側で2件目のアップロードが失敗した場合も、厳格にprojectId配下へ限定したServer Actionへ補償削除を依頼します。StorageとDBは分散システムのため、通信断・権限変更・プロセス終了などで補償削除が失敗すると孤児オブジェクトが残る可能性があります。またDB応答が失われてcommit結果を判定できない場合は、参照中オブジェクトの誤削除を避けることを優先します。削除失敗はログに記録しますが、DB更新成功を失敗扱いにはしません。
 
 開発サーバーを起動します。
 
@@ -207,7 +231,6 @@ GitHub ActionsのCIは、`main`へのpushとpull requestで実行されます。
 - 認証機能は導入しておらず、共有URLを知っている利用者はプロジェクトを閲覧・編集できます。
 - 友人やサークルなど、信頼できるメンバー間での利用を想定しています。
 - LINE内ブラウザでは音源やPDFが正常に動作しない場合があるため、SafariまたはChromeで開く必要があります。
-- 新しいSupabase環境をゼロから構築するための初期スキーマは、まだマイグレーションとして整備していません。
 - オフラインでの利用には対応していません。
 
 ### 今後の改善
@@ -215,6 +238,6 @@ GitHub ActionsのCIは、`main`へのpushとpull requestで実行されます。
 - [ ] Supabase Authを導入し、プロジェクトの所有者だけが編集できるようにする
 - [ ] 閲覧用URLと編集用URLを分ける
 - [ ] RLSによるデータベースとStorageのアクセス制御を強化する
-- [ ] 初期テーブル、Storage Policy、DB関数を含むマイグレーションを整備する
+- [ ] 古い形式のStorageオブジェクトを棚卸しして削除する運用を整備する
 - [ ] 主要操作のE2Eテストを追加する
 - [ ] オフライン再生とキャッシュ管理を改善する

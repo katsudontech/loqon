@@ -64,13 +64,30 @@ export interface Database {
           created_at?: string
           name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'timeline_markers_project_id_fkey'
+            columns: ['project_id']
+            isOneToOne: false
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_project_by_id: {
+        Args: {
+          p_project_id: string
+          p_title: string
+          p_audio_url: string
+          p_pdf_url: string
+        }
+        Returns: undefined
+      }
       get_public_project: {
         Args: {
           p_project_id: string
@@ -88,6 +105,22 @@ export interface Database {
           p_project_id: string
         }
         Returns: Database['public']['Tables']['timeline_markers']['Row'][]
+      }
+      is_legacy_project_storage_url: {
+        Args: {
+          p_kind: string
+          p_project_id: string
+          p_url: string
+        }
+        Returns: boolean
+      }
+      is_project_storage_url: {
+        Args: {
+          p_kind: string
+          p_project_id: string
+          p_url: string
+        }
+        Returns: boolean
       }
       replace_timeline_markers: {
         Args: {
