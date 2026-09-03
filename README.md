@@ -173,6 +173,7 @@ Supabaseでは、次のリソースが必要です。初期スキーマ、RPC、
 - タイムラインを保存する`timeline_markers`テーブル
 - 音源とPDFを保存する公開Storageバケット`projects`（最大50MB、許可MIMEタイプは音源の対応形式と`application/pdf`）
 - `create_project_by_id`、`update_project_by_id`、`replace_timeline_markers`関数
+- タイムラインは既知のプロジェクトUUIDだけで読み書きでき、0秒・1ページ目のマーカーを必須とします。保存時は音源の実測durationとtimeline versionによる楽観的同時実行制御を行います。旧2引数の保存RPCは古いクライアントの上書きを防ぐため失敗します。
 
 Supabase CLIで、ファイル名順に次のマイグレーションを適用します。新規環境では全てを、既存環境では未適用分を適用してください。リポジトリにはSQLファイルを追加するだけで、本番へ自動適用は行いません。
 
@@ -181,6 +182,7 @@ supabase/migrations/20260801000000_initial_schema_and_storage.sql
 supabase/migrations/20260812000000_replace_timeline_markers_atomically.sql
 supabase/migrations/20260819000000_prevent_project_enumeration.sql
 supabase/migrations/20260820000000_harden_project_writes_and_storage.sql
+supabase/migrations/20260821000000_timeline_versions_and_validation.sql
 ```
 
 初期マイグレーションはテーブル、FK、インデックス、入力チェック、Storageバケットと必要な匿名Storage INSERT policyを整備します。既存行を削除せず、既存データと衝突する可能性があるFK・チェックは`NOT VALID`で追加して新規書き込みから適用します。必要に応じて既存データを確認してから`VALIDATE CONSTRAINT`を実行してください。公開バケットの既知URLからの読み取りは維持しますが、DBの直接SELECTとStorageのSELECT/list policyは付与しないため、プロジェクト列挙はできません。

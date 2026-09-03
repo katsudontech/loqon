@@ -3,11 +3,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { AudioControls } from '@/components/AudioControls'
 import { PDFViewerWrapper } from '@/components/PDFViewerWrapper'
+import { getPartBounds, shiftPartIndices, shouldLoopAt } from '@/lib/partLoop'
 
 type Marker = {
-    id?: string
+    id: string
     time: number
-    end_time: number
+    end_time?: number
     page: number
     name?: string
 }
@@ -34,6 +35,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     // パート内でのカスタムA-Bループ（秒数指定）
     const [customLoopA, setCustomLoopA] = useState<number | null>(null)
     const [customLoopB, setCustomLoopB] = useState<number | null>(null)
+    const [loopError, setLoopError] = useState('')
 
     // 現在の再生時間に合わせて表示するPDFページを導出する
     const currentPage = useMemo(() => {
@@ -52,24 +54,21 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
 
     // ===== パート練習（A-Bリピート）のロジック =====
     useEffect(() => {
-        if (mode !== 'part' || markers.length === 0) return;
-
-        const startMarker = markers[startMarkerIdx]
-        const endMarker = markers[endMarkerIdx]
-
-        if (!startMarker || !endMarker) return;
-
-        // 再生位置が「終了位置」に達したら、「開始位置」へ戻る（ループ）
-        const loopEnd = customLoopB !== null ? customLoopB : endMarker.end_time;
-        const loopStart = customLoopA !== null ? customLoopA : startMarker.time;
-
-        if (audioState.isPlaying && audioState.currentTime >= loopEnd) {
-            if (audioRef.current) {
-                const targetTime = isLeadinEnabled ? Math.max(0, loopStart - 5) : loopStart;
-                audioRef.current.currentTime = targetTime;
+        if (mode !== 'part' || !audioState.isPlaying) return
+        const audio = audioRef.current
+        const bounds = getPartBounds(markers, startMarkerIdx, endMarkerIdx, audioState.duration, customLoopA, customLoopB, isLeadinEnabled)
+        if (!audio || !bounds) return
+        let frame = 0
+        const monitor = () => {
+            if (!audio.paused && shouldLoopAt(audio.currentTime, bounds.loopEnd)) {
+                audio.currentTime = bounds.leadInStart
+                void audio.play().catch((error) => console.error('ループ再生に失敗しました:', error))
             }
+            if (!audio.paused) frame = requestAnimationFrame(monitor)
         }
-    }, [audioState.currentTime, audioState.isPlaying, mode, markers, startMarkerIdx, endMarkerIdx, isLeadinEnabled, customLoopA, customLoopB, audioRef])
+        frame = requestAnimationFrame(monitor)
+        return () => cancelAnimationFrame(frame)
+    }, [audioState.duration, audioState.isPlaying, audioRef, customLoopA, customLoopB, endMarkerIdx, isLeadinEnabled, markers, mode, startMarkerIdx])
 
 
     // ===== 楽曲終了時のループ処理 =====
@@ -81,7 +80,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             if (mode === 'full') {
                 // 全体再生モード：最初からやり直す
                 audio.currentTime = 0;
-                audio.play();
+                void audio.play().catch((error) => console.error('再生に失敗しました:', error));
             } else if (mode === 'part') {
                 // パート練習モード：指定した開始位置からやり直す
                 const startMarker = markers[startMarkerIdx];
@@ -89,7 +88,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                     const loopStart = customLoopA !== null ? customLoopA : startMarker.time;
                     const targetTime = isLeadinEnabled ? Math.max(0, loopStart - 5) : loopStart;
                     audio.currentTime = targetTime;
-                    audio.play();
+                    void audio.play().catch((error) => console.error('再生に失敗しました:', error));
                 }
             }
         };
@@ -103,13 +102,12 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
         setIsLeadinEnabled(prev => {
             const nextState = !prev;
             // オンにした瞬間に適用してジャンプさせる
-            if (nextState) {
-                const startMarker = mode === 'part' ? markers[startMarkerIdx] : markers.find(m => m.page === currentPage);
-                if (startMarker && audioRef.current) {
-                    const targetTime = Math.max(0, startMarker.time - 5);
-                    audioRef.current.currentTime = targetTime;
-                    if (!audioState.isPlaying) audioRef.current.play();
-                }
+            const startMarker = mode === 'part' ? markers[startMarkerIdx] : markers.find(m => m.page === currentPage);
+            if (startMarker && audioRef.current) {
+                const effectiveStart = mode === 'part' && customLoopA !== null ? customLoopA : startMarker.time;
+                const targetTime = nextState ? Math.max(0, effectiveStart - 5) : effectiveStart;
+                audioRef.current.currentTime = targetTime;
+                if (nextState && !audioState.isPlaying) void audioRef.current.play().catch((error) => console.error('再生に失敗しました:', error));
             }
             return nextState;
         });
@@ -120,11 +118,12 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
         const newStart = startMarkerIdx + direction;
         const newEnd = endMarkerIdx + direction;
 
-        if (newStart >= 0 && newEnd < markers.length) {
+        if (shiftPartIndices(startMarkerIdx, endMarkerIdx, direction, markers.length)) {
             setStartMarkerIdx(newStart);
             setEndMarkerIdx(newEnd);
             setCustomLoopA(null);
             setCustomLoopB(null);
+            setLoopError('')
 
             // シフトしたら自動的に新しいパートの先頭に飛ぶ (Safari対応のためsetTimeoutで遅延実行)
             setTimeout(() => {
@@ -179,17 +178,11 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     let displaySeekTo = audioState.seekTo;
 
     if (mode === 'part' && markers.length > 0) {
-        const startMarker = markers[startMarkerIdx];
-        const endMarker = markers[endMarkerIdx];
-        if (startMarker && endMarker) {
-            const partStart = isLeadinEnabled ? Math.max(0, startMarker.time - 5) : startMarker.time;
-            const partEnd = Math.min(endMarker.end_time, audioState.duration || 99999);
-
-            displayDuration = Math.max(0, partEnd - partStart);
-            displayCurrentTime = Math.max(0, Math.min(audioState.currentTime - partStart, displayDuration));
-            displaySeekTo = (time: number) => {
-                audioState.seekTo(time + partStart);
-            };
+        const bounds = getPartBounds(markers, startMarkerIdx, endMarkerIdx, audioState.duration, customLoopA, customLoopB, isLeadinEnabled)
+        if (bounds) {
+            displayDuration = Math.max(0, bounds.loopEnd - bounds.leadInStart)
+            displayCurrentTime = Math.max(0, Math.min(audioState.currentTime - bounds.leadInStart, displayDuration))
+            displaySeekTo = (time: number) => audioState.seekTo(time + bounds.leadInStart)
         }
     }
 
@@ -242,6 +235,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                         if (endMarkerIdx < newStart) setEndMarkerIdx(newStart)
                                         setCustomLoopA(null)
                                         setCustomLoopB(null)
+                                        setLoopError('')
                                         setTimeout(() => {
                                             if (audioRef.current && markers[newStart]) {
                                                 const targetTime = isLeadinEnabled ? Math.max(0, markers[newStart].time - 5) : markers[newStart].time;
@@ -267,6 +261,12 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                         if (startMarkerIdx > newEnd) setStartMarkerIdx(newEnd)
                                         setCustomLoopA(null)
                                         setCustomLoopB(null)
+                                        setTimeout(() => {
+                                            if (audioRef.current && markers[Math.min(startMarkerIdx, newEnd)]) {
+                                                const marker = markers[Math.min(startMarkerIdx, newEnd)]
+                                                audioRef.current.currentTime = isLeadinEnabled ? Math.max(0, marker.time - 5) : marker.time
+                                            }
+                                        }, 10)
                                     }}
                                     className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm py-1"
                                 >
@@ -281,8 +281,11 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                         <div className="mt-2 flex flex-row flex-nowrap overflow-x-auto no-scrollbar items-center justify-start gap-2">
                             <button
                                 onClick={() => {
-                                    if (customLoopB !== null && audioState.currentTime >= customLoopB) return alert('Bより前の時間を設定してください');
-                                    setCustomLoopA(audioState.currentTime)
+                                    const bounds = getPartBounds(markers, startMarkerIdx, endMarkerIdx, audioState.duration, null, null, false)
+                                    const time = audioState.currentTime
+                                    if (!bounds || time < bounds.selectionStart || time >= (customLoopB ?? bounds.selectionEnd)) { setLoopError('Aは選択範囲内で、Bより前に設定してください'); return }
+                                    setCustomLoopA(time)
+                                    setLoopError('')
                                 }}
                                 className={`px-2 py-1 text-xs font-bold rounded border transition-colors whitespace-nowrap ${customLoopA !== null ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'}`}
                             >
@@ -290,8 +293,11 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                             </button>
                             <button
                                 onClick={() => {
-                                    if (customLoopA !== null && audioState.currentTime <= customLoopA) return alert('Aより後の時間を設定してください');
-                                    setCustomLoopB(audioState.currentTime)
+                                    const bounds = getPartBounds(markers, startMarkerIdx, endMarkerIdx, audioState.duration, null, null, false)
+                                    const time = audioState.currentTime
+                                    if (!bounds || time <= (customLoopA ?? bounds.selectionStart) || time > bounds.selectionEnd) { setLoopError('Bは選択範囲内で、Aより後に設定してください'); return }
+                                    setCustomLoopB(time)
+                                    setLoopError('')
                                 }}
                                 className={`px-2 py-1 text-xs font-bold rounded border transition-colors whitespace-nowrap ${customLoopB !== null ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'}`}
                             >
@@ -299,13 +305,14 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                             </button>
                             {(customLoopA !== null || customLoopB !== null) && (
                                 <button
-                                    onClick={() => { setCustomLoopA(null); setCustomLoopB(null); }}
+                                    onClick={() => { setCustomLoopA(null); setCustomLoopB(null); setLoopError('') }}
                                     className="px-2 py-1 text-xs font-bold bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded border border-zinc-700 transition-colors whitespace-nowrap"
                                 >
                                     クリア
                                 </button>
                             )}
                         </div>
+                        {loopError && <p role="alert" className="mt-2 text-xs text-red-300">{loopError}</p>}
                     </div>
                 )}
 
@@ -315,7 +322,10 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                         <div className="flex items-center gap-2">
                             {markers.length > 0 && (
                                 <button
-                                    onClick={() => setMode(mode === 'part' ? 'full' : 'part')}
+                                    onClick={() => {
+                                        if (mode === 'part') { setMode('full'); setCustomLoopA(null); setCustomLoopB(null) }
+                                        else { setMode('part'); setCustomLoopA(null); setCustomLoopB(null); setLoopError(''); const marker = markers[startMarkerIdx]; if (marker && audioRef.current) audioRef.current.currentTime = isLeadinEnabled ? Math.max(0, marker.time - 5) : marker.time }
+                                    }}
                                     className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${mode === 'part'
                                             ? 'bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 border-indigo-700'
                                             : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
@@ -336,7 +346,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                         </div>
                         <div className="text-zinc-400 text-xs text-right whitespace-nowrap">
                             現在: <span className="text-white font-bold text-sm">{(() => {
-                                const m = markers.find(m => audioState.currentTime >= m.time && audioState.currentTime < m.end_time) || markers.find(m => m.page === currentPage);
+                                const m = markers.find(m => audioState.currentTime >= m.time && (m.end_time == null || audioState.currentTime < m.end_time)) || [...markers].reverse().find(m => m.time <= audioState.currentTime) || markers.find(m => m.page === currentPage);
                                 return m?.name ? `${m.name} (P${currentPage})` : `Page ${currentPage}`
                             })()}</span>
                         </div>

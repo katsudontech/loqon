@@ -1,7 +1,6 @@
-import { getPublicProject, getPublicTimelineMarkers } from "@/lib/projects"
+import { getPublicProject, getPublicTimelineSnapshot } from "@/lib/projects"
 import { EditorContainer } from "@/components/EditorContainer"
 import Link from "next/link"
-import { convertDbRowsToMarkers } from "@/lib/timeline"
 
 type Props = {
     params: Promise<{ projectId: string }>
@@ -16,8 +15,7 @@ export default async function EditPage({ params }: Props) {
     const pdfUrl = project.pdf_url;
     const audioUrl = project.audio_url;
 
-    const timelines = await getPublicTimelineMarkers(projectId)
-    const initialMarkers = convertDbRowsToMarkers(timelines)
+    const timeline = await getPublicTimelineSnapshot(projectId)
 
     return (
         <div className="h-[calc(100dvh-4rem)] w-full bg-zinc-950 flex flex-col overflow-hidden">
@@ -38,7 +36,9 @@ export default async function EditPage({ params }: Props) {
                 <EditorContainer
                     audioUrl={audioUrl}
                     pdfUrl={pdfUrl}
-                    initialMarkers={initialMarkers}
+                    initialMarkers={timeline.markers}
+                    initialVersion={timeline.version}
+                    initialUpdatedAt={timeline.updatedAt}
                     projectId={projectId}
                 />
             </div>

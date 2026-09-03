@@ -17,6 +17,8 @@ export interface Database {
           audio_url: string
           pdf_url: string
           created_at: string
+          timeline_version: number
+          timeline_updated_at: string
         }
         Insert: {
           id?: string
@@ -25,6 +27,8 @@ export interface Database {
           audio_url: string
           pdf_url: string
           created_at?: string
+          timeline_version?: number
+          timeline_updated_at?: string
         }
         Update: {
           id?: string
@@ -33,6 +37,8 @@ export interface Database {
           audio_url?: string
           pdf_url?: string
           created_at?: string
+          timeline_version?: number
+          timeline_updated_at?: string
         }
         Relationships: []
       }
@@ -106,6 +112,10 @@ export interface Database {
         }
         Returns: Database['public']['Tables']['timeline_markers']['Row'][]
       }
+      get_public_timeline_snapshot: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       is_legacy_project_storage_url: {
         Args: {
           p_kind: string
@@ -126,8 +136,11 @@ export interface Database {
         Args: {
           p_markers: Json
           p_project_id: string
+          p_expected_version: number
+          p_duration: number
+          p_force: boolean
         }
-        Returns: undefined
+        Returns: number
       }
       update_project_by_id: {
         Args: {

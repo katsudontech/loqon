@@ -1,4 +1,5 @@
 import { getPublicProject, getPublicTimelineMarkers } from "@/lib/projects"
+import { convertDbRowsToPlayerMarkers } from "@/lib/timeline"
 import { PlayerContainer } from "@/components/PlayerContainer"
 import { ShareButton } from "@/components/ShareButton"
 import { RecentProjectTracker } from "@/components/RecentProjectTracker"
@@ -19,13 +20,7 @@ export default async function PlayerPage({ params }: Props) {
     const markersData = await getPublicTimelineMarkers(projectId)
 
     // DBのtimeline_markers形式を、Playerで扱いやすいMarker型にマッピングする
-    const markers = markersData.map(m => ({
-        id: m.id,
-        page: m.page_number,
-        time: m.start_time,
-        end_time: m.end_time,
-        name: m.name || undefined
-    }))
+    const markers = convertDbRowsToPlayerMarkers(markersData)
 
     return (
         <div className="h-[calc(100dvh-4rem)] w-full bg-zinc-950 flex flex-col overflow-hidden">
