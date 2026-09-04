@@ -41,22 +41,18 @@ export const ShareButton = () => {
             type="button"
             onClick={handleShare}
             aria-describedby="share-status"
-            className={`text-sm flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 ${
-                status === 'shared' || status === 'copied'
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white border-zinc-700'
-            }`}
+            className="console-link"
           >
-            <span aria-hidden="true">{status === 'shared' || status === 'copied' ? '✅' : '🔗'}</span>
-            {status === 'shared' ? '共有しました' : status === 'copied' ? 'URLをコピーしました' : '共有する'}
+            <svg className="console-icon" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 12v7h14v-7" /><path d="m12 3 5 5m-5-5L7 8m5-5v13" /></svg>
+            <span className="console-label">{status === 'shared' ? '共有しました' : status === 'copied' ? 'URLをコピーしました' : '共有する'}</span>
           </button>
           <p id="share-status" className="sr-only" aria-live="polite">
             {status === 'shared' ? '共有しました' : status === 'copied' ? '共有URLをコピーしました' : status === 'error' ? '自動コピーに失敗しました。URLを選択してコピーしてください。' : ''}
           </p>
           {showFallback && (
-            <div className="w-56 rounded border border-amber-500/50 bg-zinc-900 p-2 text-left">
-              <p className="mb-1 text-xs text-amber-200">下のURLを選択してコピーしてください</p>
-              <input ref={urlRef} aria-label="共有URL" readOnly value={typeof window === 'undefined' ? '' : window.location.href} onFocus={(event) => event.currentTarget.select()} className="w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-200" />
+            <div className="floating-notice">
+              <p>下のURLを選択してコピーしてください</p>
+              <input ref={urlRef} aria-label="共有URL" readOnly value={typeof window === 'undefined' ? '' : window.location.href} onFocus={(event) => event.currentTarget.select()} className="text-input" />
             </div>
           )}
         </div>

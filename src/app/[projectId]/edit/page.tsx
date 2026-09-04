@@ -20,21 +20,21 @@ export default async function EditPage({ params }: Props) {
     const timeline = await getPublicTimelineSnapshot(projectId)
 
     return (
-        <div className="h-[calc(100dvh-4rem)] w-full bg-zinc-950 flex flex-col overflow-hidden">
-            <div className="w-full shrink-0 flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-950 z-10">
-                <div className="flex-1 min-w-0 mr-4">
-                    <h1 className="text-xl font-bold text-white truncate">{project.title || '名称未設定プロジェクト'}</h1>
-                    <p className="text-zinc-500 text-xs mt-1">プロジェクトID: {projectId}</p>
+        <div className="project-frame">
+            <div className="project-header">
+                <div className="project-header-main">
+                    <h1>{project.title || '名称未設定プロジェクト'}</h1>
+                    <span className="project-header-id">EDITOR / {projectId.slice(0, 8)}</span>
                 </div>
                 <Link
                     href={`/${projectId}/settings`}
-                    className="text-sm px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                    className="console-link"
                 >
-                    <span>⚙️</span> <span className="hidden sm:inline">設定</span>
+                    <svg className="console-icon" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" /><path d="m19 13.5 1.2 1-.1 1.8-1.7 1-1.5-.6a8 8 0 0 1-1.3.8l-.4 1.6-1.6.7-1.4-1a8 8 0 0 1-1.6 0l-1.4 1-1.6-.7-.4-1.6a8 8 0 0 1-1.3-.8l-1.5.6-1.7-1 .1-1.8 1.2-1a8 8 0 0 1 0-1.7l-1.2-1 .1-1.8 1.7-1 1.5.6a8 8 0 0 1 1.3-.8l.4-1.6 1.6-.7 1.4 1a8 8 0 0 1 1.6 0l1.4-1 1.6.7.4 1.6a8 8 0 0 1 1.3.8l1.5-.6 1.7 1-.1 1.8-1.2 1a8 8 0 0 1 0 1.7Z" /></svg> <span className="console-label">設定</span>
                 </Link>
             </div>
 
-            <div className="flex-1 w-full overflow-hidden relative">
+            <div className="console-content">
                 <EditorContainer
                     audioUrl={audioUrl}
                     pdfUrl={pdfUrl}

@@ -8,7 +8,7 @@ export const PDFViewerWrapper = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-zinc-500">
+      <div className="pdf-stage-inner text-zinc-300" aria-live="polite">
         PDFビューアを準備中...
       </div>
     )

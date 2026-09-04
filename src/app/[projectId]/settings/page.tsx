@@ -15,18 +15,19 @@ export default async function SettingsPage({ params }: Props) {
     if (!project) notFound()
 
     return (
-        <div className="min-h-screen bg-zinc-950 p-4 sm:p-8 flex flex-col items-center">
-            <div className="w-full max-w-xl flex justify-between items-end mb-8">
+        <div className="page-shell narrow">
+            <div className="section-heading">
                 <div>
-                    <h1 className="text-2xl font-bold">⚙️ プロジェクト設定</h1>
-                    <p className="text-zinc-500 text-sm mt-1">プロジェクトID: {projectId}</p>
+                    <p className="eyebrow">Project settings</p>
+                    <h1 className="page-title">プロジェクト設定</h1>
+                    <p className="page-lede">プロジェクト名、音源、構成図を更新します。</p>
                 </div>
-                <Link href={`/${projectId}/edit`} className="text-sm px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 transition-colors">
+                <Link href={`/${projectId}/edit`} className="button-quiet">
                     編集画面に戻る
                 </Link>
             </div>
 
-            <div className="w-full max-w-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mt-8">
                 <ProjectForm project={project} />
             </div>
         </div>

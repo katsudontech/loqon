@@ -118,15 +118,15 @@ export function ProjectForm({ project }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl" noValidate>
+    <form onSubmit={handleSubmit} className="form-panel" noValidate>
       {errorMsg && (
-        <div role="alert" aria-live="assertive" className="p-4 bg-red-900/30 border border-red-500 rounded-xl text-red-200 text-sm">
+        <div role="alert" aria-live="assertive" className="alert alert-error">
           {errorMsg}
         </div>
       )}
       
-      <div className="space-y-2">
-        <label htmlFor="title" className="block text-sm font-medium text-zinc-300">
+      <div className="field">
+        <label htmlFor="title">
           プロジェクト名 {isUpdate ? '' : '(任意)'}
         </label>
         <input
@@ -138,14 +138,14 @@ export function ProjectForm({ project }: Props) {
           aria-invalid={Boolean(fieldErrors.title)}
           aria-describedby={['title-help', fieldErrors.title ? 'title-error' : null].filter(Boolean).join(' ')}
           placeholder="例: 2026 Showcase HipHop"
-          className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-zinc-600 transition-all"
+          className="text-input"
         />
-        <p id="title-help" className="text-xs text-zinc-500">最大{MAX_PROJECT_TITLE_LENGTH}文字</p>
-        {fieldErrors.title && <p id="title-error" role="alert" className="text-sm text-red-300">{fieldErrors.title}</p>}
+        <p id="title-help" className="field-help">最大{MAX_PROJECT_TITLE_LENGTH}文字</p>
+        {fieldErrors.title && <p id="title-error" role="alert" className="alert-error">{fieldErrors.title}</p>}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="audio" className="block text-sm font-medium text-zinc-300">
+      <div className="field">
+        <label htmlFor="audio">
           音源ファイル {isUpdate && <span className="text-zinc-500 text-xs ml-2">※変更する場合のみ選択</span>}
           {!isUpdate && <span className="text-red-400">*</span>}
         </label>
@@ -158,17 +158,17 @@ export function ProjectForm({ project }: Props) {
           aria-invalid={Boolean(fieldErrors.audio)}
           aria-describedby={['audio-help', fieldErrors.audio ? 'audio-error' : null].filter(Boolean).join(' ')}
           onChange={(event) => setFieldErrors((current) => ({ ...current, audio: validateFile(event.target.files?.[0] ?? null, 'audio') ?? undefined }))}
-          className="w-full text-sm text-zinc-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer"
+          className="file-input"
         />
-        <p id="audio-help" className="text-xs text-zinc-500">MP3、WAV、OGG、FLAC、M4A、AAC / 最大{Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB</p>
-        {fieldErrors.audio && <p id="audio-error" role="alert" className="text-sm text-red-300">{fieldErrors.audio}</p>}
+        <p id="audio-help" className="field-help">MP3、WAV、OGG、FLAC、M4A、AAC / 最大{Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB</p>
+        {fieldErrors.audio && <p id="audio-error" role="alert" className="alert-error">{fieldErrors.audio}</p>}
         {isUpdate && project?.audio_url && (
-          <p className="text-xs text-zinc-500 mt-2 truncate">現在のファイル: <a href={project.audio_url} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">リンクを開く</a></p>
+          <p className="field-help truncate">現在のファイル: <a href={project.audio_url} target="_blank" rel="noopener noreferrer" className="text-link">リンクを開く</a></p>
         )}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="pdf" className="block text-sm font-medium text-zinc-300">
+      <div className="field">
+        <label htmlFor="pdf">
           構成図 (PDF) {isUpdate && <span className="text-zinc-500 text-xs ml-2">※変更する場合のみ選択</span>}
           {!isUpdate && <span className="text-red-400">*</span>}
         </label>
@@ -181,25 +181,25 @@ export function ProjectForm({ project }: Props) {
           aria-invalid={Boolean(fieldErrors.pdf)}
           aria-describedby={['pdf-help', fieldErrors.pdf ? 'pdf-error' : null].filter(Boolean).join(' ')}
           onChange={(event) => setFieldErrors((current) => ({ ...current, pdf: validateFile(event.target.files?.[0] ?? null, 'pdf') ?? undefined }))}
-          className="w-full text-sm text-zinc-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer"
+          className="file-input"
         />
-        <p id="pdf-help" className="text-xs text-zinc-500">PDF（.pdf） / 最大{Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB</p>
-        {fieldErrors.pdf && <p id="pdf-error" role="alert" className="text-sm text-red-300">{fieldErrors.pdf}</p>}
+        <p id="pdf-help" className="field-help">PDF（.pdf） / 最大{Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB</p>
+        {fieldErrors.pdf && <p id="pdf-error" role="alert" className="alert-error">{fieldErrors.pdf}</p>}
         {isUpdate && project?.pdf_url && (
-          <p className="text-xs text-zinc-500 mt-2 truncate">現在のファイル: <a href={project.pdf_url} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">リンクを開く</a></p>
+          <p className="field-help truncate">現在のファイル: <a href={project.pdf_url} target="_blank" rel="noopener noreferrer" className="text-link">リンクを開く</a></p>
         )}
       </div>
 
-      <div className="pt-4">
-        {progress && <p className="mb-3 text-center text-sm text-indigo-200" aria-live="polite" aria-busy="true">{progress}</p>}
+      <div className="form-actions">
+        {progress && <p className="field-help text-center" aria-live="polite" aria-busy="true">{progress}</p>}
         <button
           type="submit"
           disabled={pending}
-          className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="button w-full"
         >
           {pending ? (
             <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span aria-hidden="true">…</span>
               {isUpdate ? '更新中...' : 'アップロード中...'}
             </>
           ) : (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
@@ -54,6 +54,7 @@ export function PDFViewer({
 }: Props) {
   const [numPages, setNumPages] = useState<number>()
   const containerRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   const requestedPageRef = useRef(currentPage)
   const [slots, setSlots] = useState(() => ({
     shownPage: currentPage,
@@ -61,6 +62,14 @@ export function PDFViewer({
     standbyReady: false,
   }))
   const [containerWidth, setContainerWidth] = useState(getInitialWidth)
+  const [zoom, setZoom] = useState(1)
+  const [isFocused, setIsFocused] = useState(false)
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFocused(document.fullscreenElement === stageRef.current)
+    document.addEventListener('fullscreenchange', syncFullscreen)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen)
+  }, [])
 
   // Never allow an accidental large canvas tree. Preserve caller order while
   // dropping duplicates and invalid pages.
@@ -152,6 +161,7 @@ export function PDFViewer({
   // values to avoid repeatedly re-rendering canvases.
   useEffect(() => {
     const container = containerRef.current
+    const stage = stageRef.current
     if (!container || typeof ResizeObserver === 'undefined') return
 
     let frame: number | null = null
@@ -175,6 +185,7 @@ export function PDFViewer({
     })
 
     observer.observe(container)
+    if (stage) observer.observe(stage)
     return () => {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
@@ -188,6 +199,26 @@ export function PDFViewer({
     renderStandbyPage ? playerPages : visiblePages,
   ).filter((page) => !numPages || page <= numPages)
 
+  const toggleFocus = () => {
+    const element = stageRef.current
+    if (document.fullscreenElement === element && typeof document.exitFullscreen === 'function') {
+      void document.exitFullscreen().catch(() => undefined)
+    } else if (isFocused) {
+      setIsFocused(false)
+    } else if (element && typeof element.requestFullscreen === 'function') {
+      void element.requestFullscreen().catch(() => setIsFocused(true))
+    } else {
+      setIsFocused(true)
+    }
+  }
+
+  const handlePdfKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      toggleFocus()
+    }
+  }
+
   return (
     <div
       ref={containerRef}
@@ -199,9 +230,8 @@ export function PDFViewer({
         options={PDF_DOCUMENT_OPTIONS}
         onLoadSuccess={handleLoadSuccess}
         loading={(
-          <div className="flex flex-col items-center justify-center gap-4 text-zinc-400 aspect-[4/3] w-full">
-            <div className="w-8 h-8 border-4 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
-            <p>PDFを読み込み中...</p>
+          <div className="pdf-stage-inner" aria-live="polite">
+            <p>PDFを読み込み中…</p>
           </div>
         )}
         className={`w-full ${fitToContainer ? 'h-full flex-1 flex flex-col' : 'flex flex-col'}`}
@@ -209,27 +239,42 @@ export function PDFViewer({
         {numPages && pagesToRender.length > 0 && (
           <div className={`w-full ${fitToContainer ? 'flex flex-col h-full flex-1' : ''}`}>
             <div
+              ref={stageRef}
               className={`relative w-full ${fitToContainer
-                ? 'h-full flex-1 bg-zinc-900/50 flex items-center justify-center p-2 sm:p-4 overflow-hidden'
+                ? `h-full flex-1 stage pdf-stage-inner ${zoom > 1 ? 'pdf-zoomed' : ''} ${isFocused ? 'pdf-focus-mode' : ''}`
                 : 'flex flex-col justify-center items-center gap-4'}`}
             >
+              {fitToContainer && <div className="pdf-tools" role="toolbar" aria-label="PDF表示操作">
+                <button type="button" className="icon-button" aria-label="PDFを縮小" onClick={() => setZoom((value) => Math.max(.75, Number((value - .25).toFixed(2))))}>−</button>
+                <span aria-live="polite">{Math.round(zoom * 100)}%</span>
+                <button type="button" className="icon-button" aria-label="PDFを拡大" onClick={() => setZoom((value) => Math.min(2, Number((value + .25).toFixed(2))))}>＋</button>
+                <button type="button" className="icon-button" aria-label="PDFの倍率をリセット" onClick={() => setZoom(1)}>1:1</button>
+                <button type="button" className="icon-button" aria-pressed={isFocused} aria-label={isFocused ? 'PDFのフォーカス表示を終了' : 'PDFをフォーカス表示'} onClick={toggleFocus}>□</button>
+              </div>}
               {pagesToRender.map((pageNumber, index) => (
                 <div
                   key={pageNumber}
                   className={`${fitToContainer
-                    ? `absolute inset-0 flex items-center justify-center overflow-hidden p-2 sm:p-4 ${index === 0 ? 'z-10' : 'z-0 opacity-0 pointer-events-none'}`
-                    : 'flex flex-col items-center justify-center w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden'}`}
+                    ? `pdf-page ${zoom > 1 && index === 0 ? 'pdf-page-zoomed' : ''} ${index === 0 ? 'z-10' : 'z-0 opacity-0 pointer-events-none'}`
+                    : 'flex flex-col items-center justify-center w-full bg-white border border-zinc-300 rounded overflow-hidden'}`}
+                  role={fitToContainer && index === 0 ? 'button' : undefined}
+                  tabIndex={fitToContainer && index === 0 ? 0 : undefined}
+                  aria-label={fitToContainer && index === 0 ? (isFocused ? 'PDFのフォーカス表示を終了' : 'PDFをフォーカス表示') : undefined}
+                  onClick={fitToContainer && index === 0 ? toggleFocus : undefined}
+                  onKeyDown={fitToContainer && index === 0 ? handlePdfKeyDown : undefined}
                 >
                   {!fitToContainer && (
-                    <div className="w-full bg-zinc-800 text-center text-zinc-300 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-700 shrink-0">
+                    <div className="w-full bg-zinc-100 text-center text-zinc-700 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-300 shrink-0">
                       {index === 0 ? `現在のページ (${pageNumber}P)` : `次のページ (${pageNumber}P)`}
                     </div>
                   )}
                   <Page
                     pageNumber={pageNumber}
-                    width={containerWidth}
-                    className={`shadow-xl flex items-center justify-center ${fitToContainer
-                      ? 'max-w-full max-h-full [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain'
+                    width={Math.round(containerWidth * zoom)}
+                    className={`flex items-center justify-center ${fitToContainer
+                      ? (zoom > 1
+                        ? '[&_canvas]:!w-auto [&_canvas]:!h-auto'
+                        : 'max-w-full max-h-full [&_canvas]:max-w-full [&_canvas]:max-h-full [&_canvas]:!w-auto [&_canvas]:!h-auto [&_canvas]:object-contain')
                       : '[&_canvas]:!w-full [&_canvas]:!h-auto'}`}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}

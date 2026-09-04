@@ -36,6 +36,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     const [customLoopA, setCustomLoopA] = useState<number | null>(null)
     const [customLoopB, setCustomLoopB] = useState<number | null>(null)
     const [loopError, setLoopError] = useState('')
+    const [showAdvanced, setShowAdvanced] = useState(false)
 
     // 現在の再生時間に合わせて表示するPDFページを導出する
     const currentPage = useMemo(() => {
@@ -187,12 +188,12 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     }
 
     return (
-        <div className="flex flex-col w-full h-full overflow-hidden relative">
+        <div className="player-layout flex flex-col w-full h-full overflow-hidden relative">
             {/* 隠しオーディオ要素 */}
             <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
             {/* PDFビューア (スクロールしないように画面にフィットさせる領域) */}
-            <div className="flex-1 w-full overflow-hidden bg-zinc-950 flex flex-col relative">
+            <div className="player-pdf-stage">
                 <PDFViewerWrapper
                     url={pdfUrl}
                     currentPage={currentPage}
@@ -201,35 +202,28 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
             </div>
 
             {/* 下部固定コントロール領域 */}
-            <div className="w-full shrink-0 flex flex-col bg-zinc-950 border-t border-zinc-800 pb-safe">
+            <div className="player-controls">
+                {markers.length > 0 && <div className="part-nav" aria-label="パート移動">
+                    <button type="button" aria-label="前のパート" onClick={() => handleShiftPart(-1)} disabled={startMarkerIdx <= 0} className="console-toggle">←</button>
+                    <span className="part-nav-label">{mode === 'part' ? (markers[startMarkerIdx]?.name || `パート ${startMarkerIdx + 1}`) : '全体再生'}</span>
+                    <button type="button" aria-label="次のパート" onClick={() => handleShiftPart(1)} disabled={endMarkerIdx >= markers.length - 1} className="console-toggle">→</button>
+                </div>}
                 {/* リピート区間コントロール */}
-                {mode === 'part' && markers.length > 0 && (
-                    <div className="w-full bg-indigo-950/30 border-b border-indigo-900/50 p-2 sm:p-4 backdrop-blur-sm">
-                        <div className="flex justify-between items-center mb-3">
-                            <button
-                                type="button"
-                                aria-label="前のパート"
-                                onClick={() => handleShiftPart(-1)}
-                                disabled={startMarkerIdx <= 0}
-                                className="px-4 py-3 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-xl flex-1 mr-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-center text-sm sm:text-base"
-                            >
-                                ◀ 前のパート
-                            </button>
-                            <div className="flex flex-col items-center justify-center mx-1">
-                                <span className="text-indigo-300/80 text-xs font-bold whitespace-nowrap">🔁</span>
-                            </div>
-                            <button
-                                type="button"
-                                aria-label="次のパート"
-                                onClick={() => handleShiftPart(1)}
-                                disabled={endMarkerIdx >= markers.length - 1}
-                                className="px-4 py-3 bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 font-bold rounded-xl flex-1 ml-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-center text-sm sm:text-base"
-                            >
-                                次のパート ▶
-                            </button>
+                {markers.length > 0 && (
+                    <>
+                    <button type="button" className="console-toggle w-full" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)}>
+                        {showAdvanced ? 'パート設定を閉じる' : 'パート設定を開く'}
+                    </button>
+                    {showAdvanced && <div className="advanced-panel">
+                        <div className="compact-tools advanced-mode-tools">
+                            <button type="button" aria-pressed={mode === 'part'} aria-label={mode === 'part' ? 'パート練習モード（選択中）' : '全体再生モードへ切り替え'} onClick={() => {
+                                if (mode === 'part') { setMode('full'); setCustomLoopA(null); setCustomLoopB(null) }
+                                else { setMode('part'); setCustomLoopA(null); setCustomLoopB(null); setLoopError(''); const marker = markers[startMarkerIdx]; if (marker && audioRef.current) audioRef.current.currentTime = isLeadinEnabled ? Math.max(0, marker.time - 5) : marker.time }
+                            }} className="console-toggle">{mode === 'part' ? 'パート練習' : '全体再生'}</button>
+                            <button type="button" aria-pressed={isLeadinEnabled} aria-label={isLeadinEnabled ? '5秒前再生をオフにする' : '5秒前再生をオンにする'} onClick={handleLeadinToggle} className="console-toggle">{isLeadinEnabled ? '5秒前 ON' : '5秒前 OFF'}</button>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 p-2 rounded-xl border border-zinc-800">
+                        {mode === 'part' && <div className="loop-grid">
+                            <div className="console-field">
                                 <span className="text-zinc-400 text-xs whitespace-nowrap">開始:</span>
                                 <select
                                     aria-label="ループ開始パート"
@@ -248,15 +242,15 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                             }
                                         }, 10);
                                     }}
-                                    className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm py-1"
+                                    className="select-input"
                                 >
                                     {markers.map((m, i) => (
                                         <option key={`start-${i}`} value={i}>{m.name ? `${m.name} (ページ${m.page})` : `ページ ${m.page}`}</option>
                                     ))}
                                 </select>
                             </div>
-                            <span className="text-zinc-500 font-bold text-sm">〜</span>
-                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 p-2 rounded-xl border border-zinc-800">
+                            <span className="sr-only">から</span>
+                            <div className="console-field">
                                 <span className="text-zinc-400 text-xs whitespace-nowrap">終了:</span>
                                 <select
                                     aria-label="ループ終了パート"
@@ -274,17 +268,17 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                             }
                                         }, 10)
                                     }}
-                                    className="w-full bg-zinc-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm py-1"
+                                    className="select-input"
                                 >
                                     {markers.map((m, i) => (
                                         <option key={`end-${i}`} value={i}>{m.name ? `${m.name} (ページ${m.page})` : `ページ ${m.page}`}</option>
                                     ))}
                                 </select>
                             </div>
-                        </div>
+                        </div>}
 
                         {/* カスタムA-Bループ */}
-                        <div className="mt-2 flex flex-row flex-nowrap overflow-x-auto no-scrollbar items-center justify-start gap-2">
+                        <div className="mt-2 flex flex-row flex-wrap items-center justify-start gap-2">
                             <button
                                 type="button"
                                 aria-label="ループ開始位置Aを設定"
@@ -295,7 +289,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     setCustomLoopA(time)
                                     setLoopError('')
                                 }}
-                                className={`px-2 py-1 text-xs font-bold rounded border transition-colors whitespace-nowrap ${customLoopA !== null ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'}`}
+                                className={`console-toggle ${customLoopA !== null ? 'active' : ''}`}
                             >
                                 A: {customLoopA !== null ? `${customLoopA.toFixed(1)}s` : '開始'}
                             </button>
@@ -309,7 +303,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     setCustomLoopB(time)
                                     setLoopError('')
                                 }}
-                                className={`px-2 py-1 text-xs font-bold rounded border transition-colors whitespace-nowrap ${customLoopB !== null ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700'}`}
+                                className={`console-toggle ${customLoopB !== null ? 'active' : ''}`}
                             >
                                 B: {customLoopB !== null ? `${customLoopB.toFixed(1)}s` : '終了'}
                             </button>
@@ -318,50 +312,20 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
                                     type="button"
                                     aria-label="カスタムループをクリア"
                                     onClick={() => { setCustomLoopA(null); setCustomLoopB(null); setLoopError('') }}
-                                    className="px-2 py-1 text-xs font-bold bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded border border-zinc-700 transition-colors whitespace-nowrap"
+                                    className="console-toggle"
                                 >
                                     クリア
                                 </button>
                             )}
                         </div>
                         {loopError && <p role="alert" aria-live="assertive" className="mt-2 text-xs text-red-300">{loopError}</p>}
-                    </div>
+                    </div>}
+                    </>
                 )}
 
                 {/* オーディオコントロール領域 (一番下) */}
-                <div className="w-full bg-zinc-900 p-3 sm:p-4 pb-8 sm:pb-6 shadow-2xl flex flex-col gap-3">
+                <div className="controls-primary">
                     <div className="flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-2">
-                            {markers.length > 0 && (
-                                <button
-                                    type="button"
-                                    aria-pressed={mode === 'part'}
-                                    aria-label={mode === 'part' ? 'パート練習モード（選択中）' : '全体再生モードからパート練習モードへ切り替え'}
-                                    onClick={() => {
-                                        if (mode === 'part') { setMode('full'); setCustomLoopA(null); setCustomLoopB(null) }
-                                        else { setMode('part'); setCustomLoopA(null); setCustomLoopB(null); setLoopError(''); const marker = markers[startMarkerIdx]; if (marker && audioRef.current) audioRef.current.currentTime = isLeadinEnabled ? Math.max(0, marker.time - 5) : marker.time }
-                                    }}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${mode === 'part'
-                                            ? 'bg-indigo-900/50 hover:bg-indigo-800 text-indigo-300 border-indigo-700'
-                                            : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
-                                        }`}
-                                >
-                                    {mode === 'part' ? '🎯 パート' : '🎵 全体'}
-                                </button>
-                            )}
-                            <button
-                                type="button"
-                                aria-pressed={isLeadinEnabled}
-                                aria-label={isLeadinEnabled ? '5秒前再生をオフにする' : '5秒前再生をオンにする'}
-                                onClick={handleLeadinToggle}
-                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 border ${isLeadinEnabled
-                                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500'
-                                        : 'bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border-zinc-700'
-                                    }`}
-                            >
-                                <span>⏪</span> {isLeadinEnabled ? '5秒前 ON' : '5秒前 OFF'}
-                            </button>
-                        </div>
                         <div className="text-zinc-400 text-xs text-right whitespace-nowrap">
                             現在: <span className="text-white font-bold text-sm">{(() => {
                                 const m = markers.find(m => audioState.currentTime >= m.time && (m.end_time == null || audioState.currentTime < m.end_time)) || [...markers].reverse().find(m => m.time <= audioState.currentTime) || markers.find(m => m.page === currentPage);

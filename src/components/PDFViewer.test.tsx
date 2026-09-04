@@ -173,6 +173,38 @@ describe('PDFViewer performance bounds', () => {
     expect([...host.querySelectorAll('[data-page]')].map((node) => node.getAttribute('data-page')))
       .toEqual(['3', '4'])
   })
+
+  it('exposes working zoom, reset, and focus-mode controls', () => {
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+
+    act(() => {
+      root?.render(React.createElement(PDFViewer, {
+        url: '/formation.pdf',
+        currentPage: 1,
+      }))
+    })
+    act(() => latestDocumentProps?.onLoadSuccess?.({ numPages: 1 }))
+
+    const zoomIn = host.querySelector('[aria-label="PDFを拡大"]') as HTMLButtonElement
+    const reset = host.querySelector('[aria-label="PDFの倍率をリセット"]') as HTMLButtonElement
+    act(() => zoomIn.click())
+    expect(host.querySelector('.pdf-stage-inner')?.className).toContain('pdf-zoomed')
+    expect(host.querySelector('.pdf-page')?.className).toContain('pdf-page-zoomed')
+
+    act(() => reset.click())
+    expect(host.querySelector('.pdf-stage-inner')?.className).not.toContain('pdf-zoomed')
+
+    const page = host.querySelector('[role="button"]') as HTMLDivElement
+    const stage = host.querySelector('.pdf-stage-inner') as HTMLDivElement
+    Object.defineProperty(stage, 'requestFullscreen', { configurable: true, value: undefined })
+    act(() => page.click())
+    expect(stage.className).toContain('pdf-focus-mode')
+    expect(page.getAttribute('aria-label')).toBe('PDFのフォーカス表示を終了')
+    act(() => page.click())
+    expect(stage.className).not.toContain('pdf-focus-mode')
+  })
 })
 
 describe('PDF/PWA source safeguards', () => {

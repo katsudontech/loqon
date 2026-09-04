@@ -56,75 +56,47 @@ export default function SelectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 flex flex-col items-center pt-24">
-      <div className="w-full max-w-2xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">最近のショーケース</h1>
-            <p className="text-zinc-500 mt-2">最近開いたプロジェクト（ショーケース）</p>
-          </div>
-          <Link
-            href="/"
-            className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/20"
-          >
-            トップへ戻る
-          </Link>
-        </div>
+    <div className="page-shell narrow">
+      <div className="section-heading">
+        <div><p className="eyebrow">Recent showcases</p><h1 className="page-title">最近のショーケース</h1><p className="page-lede">この端末で最近開いたプロジェクト。</p></div>
+        <Link href="/" className="button-quiet">トップへ</Link>
+      </div>
 
         {!isLoaded ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="empty-panel" aria-live="polite">
+            <p>履歴を読み込んでいます…</p>
           </div>
         ) : projects.length === 0 ? (
-          <div className="text-center py-16 bg-zinc-900/50 rounded-2xl border border-zinc-800">
-            <div className="text-4xl mb-4 opacity-50">📂</div>
-            <h2 className="text-xl font-bold text-zinc-300 mb-2">履歴がありません</h2>
-            <p className="text-zinc-500 mb-6 text-sm">
+          <div className="empty-panel">
+            <h2>履歴がありません</h2>
+            <p>
               プロジェクトを作成するか、共有されたURLを開くと、ここに履歴が残ります。
             </p>
-            <Link
-              href="/create"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-black font-semibold rounded-full hover:bg-zinc-200 transition-colors"
-            >
+            <Link href="/create" className="button">
               新しく作成する
             </Link>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="recent-list">
             {projects.map((p) => (
               <button
                 type="button"
                 key={p.id}
                 onClick={() => router.push(`/${p.id}`)}
-                className="w-full text-left flex items-center justify-between p-5 bg-zinc-900 hover:bg-zinc-800/80 rounded-2xl border border-zinc-800 hover:border-indigo-500/30 transition-all group active:scale-[0.98]"
+                className="recent-item"
               >
-                <div className="flex flex-col gap-1">
-                  <span className="text-lg font-bold text-zinc-100 group-hover:text-white transition-colors">
-                    {p.title}
-                  </span>
-                  <span className="text-xs font-mono text-zinc-500">
-                    ID: {p.id.slice(0, 8)}...
-                  </span>
+                <div>
+                  <span className="recent-title">{p.title}</span>
+                  <span className="recent-id">ID: {p.id.slice(0, 8)}...</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs text-zinc-500 bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800">
-                    {formatDate(p.lastVisited)}
-                  </span>
-                  <svg
-                    className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 transition-colors group-hover:translate-x-1 duration-300"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
+                <div>
+                  <span className="recent-date">{formatDate(p.lastVisited)}</span>
+                  <span aria-hidden="true">→</span>
                 </div>
               </button>
             ))}
           </div>
         )}
-      </div>
     </div>
   );
 }

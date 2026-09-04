@@ -97,41 +97,38 @@ export const InstallPrompt = () => {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:w-[400px] bg-zinc-900 border border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.15)] rounded-2xl p-5 z-[100] animate-in slide-in-from-bottom-8 fade-in duration-500">
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <span className="text-xl">📱</span>
-          </div>
-          <h3 className="font-bold text-white text-lg leading-tight">ホーム画面に<br/>追加推奨！</h3>
+    <div className="floating-notice">
+      <div className="flex justify-between items-start gap-3">
+        <div>
+          <h3>ホーム画面に追加</h3>
         </div>
-        <button type="button" onClick={dismiss} aria-label="インストール案内を閉じる" className="text-zinc-500 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-zinc-800 -mt-1 -mr-1">
+        <button type="button" onClick={dismiss} aria-label="インストール案内を閉じる" className="icon-button">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
       
-      <div className="text-zinc-300 text-sm leading-relaxed mb-4 bg-zinc-950/50 p-3 rounded-xl border border-zinc-800/50">
+      <div className="field-help">
         「ホーム画面に追加」すると、ブラウザを開かずにすぐアクセスできます。
       </div>
 
       {isIOS ? (
-        <div className="bg-indigo-950/40 rounded-xl p-3 border border-indigo-900/50 flex flex-col gap-2.5">
-          <p className="text-sm text-indigo-100 font-medium flex items-center gap-2">
-            <span className="bg-indigo-500/20 text-indigo-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span>
-            画面下部の <svg className="w-5 h-5 inline text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> （共有ボタン）をタップ
+        <div className="alert alert-warning">
+          <p>
+            <span>1. </span>
+            画面下部の <svg className="install-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> （共有ボタン）をタップ
           </p>
-          <p className="text-sm text-indigo-100 font-medium flex items-center gap-2">
-            <span className="bg-indigo-500/20 text-indigo-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span>
-            「ホーム画面に追加 <svg className="w-5 h-5 inline text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> 」を選択
+          <p>
+            <span>2. </span>
+            「ホーム画面に追加 <svg className="install-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> 」を選択
           </p>
         </div>
       ) : (
         <button
           type="button"
           onClick={handleInstallClick}
-          className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base rounded-xl shadow-lg transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+          className="button w-full"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
