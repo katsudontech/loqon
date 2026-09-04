@@ -6,8 +6,8 @@ export default function Home() {
       <div className="home-grid">
         <section aria-labelledby="home-title">
           <p className="eyebrow">Paper frame / stage console</p>
-          <h1 id="home-title" className="home-title">構成図と音源を、<em>ひとつの練習画面</em>に。</h1>
-          <p className="home-copy">PDFのフォーメーション図と音源を同期。パートごとの区切りをチームで共有し、練習の流れを止めずに確認できます。</p>
+          <h1 id="home-title" className="home-title">フォーメーションPDFと音源を同期して、<em>ダンス練習</em>を進める。</h1>
+          <p className="home-copy">Loqonは、音源の再生に合わせて構成図のページを切り替える練習画面です。パートの区切りを登録すれば、止めずに次のフォーメーションを確認できます。</p>
           <div className="home-actions">
             <Link href="/create" className="button">プロジェクトを作成する <span aria-hidden="true">→</span></Link>
             <Link href="/select" className="button-secondary">最近見たショーケース</Link>
@@ -26,6 +26,69 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      <section className="home-section" aria-labelledby="features-title">
+        <div className="home-section-heading">
+          <p className="eyebrow">Practice console</p>
+          <h2 id="features-title">Loqonでできること</h2>
+        </div>
+        <ul className="feature-list">
+          <li>
+            <span className="feature-index" aria-hidden="true">01</span>
+            <div><h3>ページを自動で切り替え</h3><p>音源のタイミングに合わせて、登録した構成図PDFのページを表示します。</p></div>
+          </li>
+          <li>
+            <span className="feature-index" aria-hidden="true">02</span>
+            <div><h3>パート練習とA-Bループ</h3><p>タイムラインの区切りからパートを選び、必要な範囲を繰り返し再生できます。</p></div>
+          </li>
+          <li>
+            <span className="feature-index" aria-hidden="true">03</span>
+            <div><h3>URLとタイムラインを共有</h3><p>保存したプロジェクトをURLで共有。タイムラインのページや名前も編集できます。</p></div>
+          </li>
+        </ul>
+      </section>
+
+      <section className="home-section home-section-steps" aria-labelledby="steps-title">
+        <div className="home-section-heading">
+          <p className="eyebrow">Start here</p>
+          <h2 id="steps-title">使い方</h2>
+        </div>
+        <ol className="steps-list">
+          <li><span className="step-number" aria-hidden="true">1</span><div><h3>音源とPDFを登録する</h3><p>プロジェクトを作成し、音源ファイルとフォーメーションの構成図PDFをアップロードします。</p></div></li>
+          <li><span className="step-number" aria-hidden="true">2</span><div><h3>タイムラインに記録する</h3><p>音源を再生しながら、ページやパートが切り替わる時刻をタイムラインエディタに登録します。</p></div></li>
+          <li><span className="step-number" aria-hidden="true">3</span><div><h3>保存して練習する</h3><p>登録したタイミングでPDFが自動切り替え。パート練習やA-Bループで繰り返し確認できます。</p></div></li>
+          <li><span className="step-number" aria-hidden="true">4</span><div><h3>チームに共有する</h3><p>プロジェクトのURLをメンバーに送り、同じプレイヤー画面で練習します。</p></div></li>
+        </ol>
+      </section>
+
+      <section className="home-section home-section-inputs" aria-labelledby="inputs-title">
+        <div className="home-section-heading">
+          <p className="eyebrow">Before you create</p>
+          <h2 id="inputs-title">用意するファイル</h2>
+        </div>
+        <div className="input-guide">
+          <div>
+            <h3>新規プロジェクトに必要なもの</h3>
+            <p>音源ファイル1つと、構成図PDF（.pdf）1つ。どちらも1ファイル50MB以下です。</p>
+          </div>
+          <dl>
+            <div><dt>音源</dt><dd>MP3、WAV、OGG / OGA、FLAC、M4A / MP4、AAC</dd></div>
+            <div><dt>構成図</dt><dd>PDF（.pdf）</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section className="home-cta" aria-labelledby="home-cta-title">
+        <div>
+          <p className="eyebrow">Ready when you are</p>
+          <h2 id="home-cta-title">まずは1曲分の練習画面を作る</h2>
+          <p>音源と構成図を登録して、チームで使えるタイムラインを準備しましょう。</p>
+        </div>
+        <div className="home-cta-actions">
+          <Link href="/create" className="button">プロジェクトを作成する <span aria-hidden="true">→</span></Link>
+          <Link href="/select" className="text-link">最近のプロジェクトを見る</Link>
+        </div>
+      </section>
     </div>
   );
 }
