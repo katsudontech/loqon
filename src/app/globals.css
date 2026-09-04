@@ -15,6 +15,9 @@
 * { box-sizing: border-box; }
 html { background: var(--canvas); }
 body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font-ui); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.app-body { min-height: 100dvh; }
+.app-body:has(.project-frame) { height: 100dvh; min-height: 0; overflow: hidden; overscroll-behavior: none; }
+.app-body:has(.project-frame) > main { min-height: 0; overflow: hidden; }
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 :where(a, button, input, select, textarea, [role="button"]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -61,8 +64,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .formation-dot { width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 50%; } .formation-dot.active { border-color: var(--accent); background: var(--accent); }
 .preview-rule { height: 4px; margin-top: 5px; background: #d8d7d1; } .preview-rule.short { width: 65%; }
 
-.project-frame { height: calc(100dvh - 56px); min-height: 0; width: 100%; background: var(--console); color: #f6f6f4; display: flex; flex-direction: column; overflow: hidden; }
-html:has(.project-frame) .project-frame { height: 100dvh; }
+.project-frame { height: 100dvh; min-height: 0; width: 100%; background: var(--console); color: #f6f6f4; display: flex; flex-direction: column; overflow: hidden; }
 .project-header { min-height: 52px; flex: 0 0 52px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid #454745; background: var(--console); }
 .project-header-main { min-width: 0; display: flex; align-items: center; gap: 12px; } .project-header h1 { overflow: hidden; margin: 0; color: #fff; font-size: 15px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .project-header-id { color: #9b9f9b; font: 10px var(--font-mono); } .project-header-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
@@ -110,7 +112,7 @@ html:has(.project-frame) .project-frame { height: 100dvh; }
   .site-header { height: 52px; flex-basis: 52px; } .site-header-inner { padding: 0 16px; } .header-note { display: none; } .page-shell { padding: 32px 16px 54px; } .home-shell { padding: 46px 16px 58px; }
   .home-grid { display: block; } .home-copy { font-size: 15px; line-height: 1.7; } .home-actions { display: grid; } .home-actions > * { width: 100%; } .stage-preview { min-height: 310px; margin-top: 42px; }
   .stage-preview-body { min-height: 225px; padding-top: 20px; } .paper-preview { width: min(210px, 72vw); padding: 18px 14px; } .formation-row { margin: 12px 0; }
-  .project-frame { height: calc(100dvh - 52px); } .project-header { min-height: 50px; flex-basis: 50px; padding: 0 10px; } .project-header-id { display: none; } .project-header h1 { font-size: 14px; }
+  .project-header { min-height: 50px; flex-basis: 50px; padding: 0 10px; } .project-header-id { display: none; } .project-header h1 { font-size: 14px; }
   .console-link { min-width: 44px; width: 44px; min-height: 44px; padding: 0; justify-content: center; } .console-link .console-label { display: none; } .editor-layout { display: flex; flex-direction: column; } .editor-pdf { flex: 1; order: 1; padding: 8px; }
   .editor-sidebar { order: 2; flex: 0 0 auto; max-height: 42vh; border: 0; border-top: 1px solid #474a47; } .editor-sidebar[data-expanded="false"] .timeline-list { display: none; } .editor-actions { order: 3; flex: 0 0 auto; }
   .timeline-head { min-height: 48px; } .editor-action-row { grid-template-columns: 1fr 1fr; } .advanced-panel { max-height: 42vh; overflow-y: auto; }
@@ -126,7 +128,7 @@ html:has(.project-frame) .project-frame { height: 100dvh; }
   .editor-actions { order: 3; flex: 0 0 auto; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
-  .project-header { min-height: 48px; flex-basis: 48px; } .project-frame { height: calc(100dvh - 48px); } .controls-primary { padding-top: 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  .project-header { min-height: 48px; flex-basis: 48px; } .controls-primary { padding-top: 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
   .audio-controls { gap: 5px; } .controls-primary .compact-tools { display: none; } .player-controls { max-height: 190px; overflow-y: auto; }
 }
 @media (orientation: landscape) and (min-width: 761px), (min-width: 1024px) {

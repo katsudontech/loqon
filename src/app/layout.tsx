@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="min-h-screen flex flex-col">
+      <body className="app-body flex flex-col">
         <SiteHeader />
         <main className="flex-1 flex flex-col relative overflow-x-hidden">
           {children}
