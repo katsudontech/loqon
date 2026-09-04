@@ -161,7 +161,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                 </div>}
             </aside>
 
-            <div className="editor-pdf"><PDFViewerWrapper url={pdfUrl} currentPage={currentPage} pages={numPages && currentPage < numPages ? [currentPage, currentPage + 1] : [currentPage]} onDocumentLoadSuccess={setNumPages} fitToContainer={false} /></div>
+            <div className="editor-pdf"><PDFViewerWrapper url={pdfUrl} currentPage={currentPage} onDocumentLoadSuccess={setNumPages} fitToContainer={false} /></div>
             <div className="editor-actions">
                 <AudioControls {...audioState} />
                 <div className="editor-action-row"><button type="button" onClick={handleRecordPartChange} className="editor-action">パート区切りを記録</button><button type="button" onClick={handleRecordPageTurn} disabled={numPages !== null && currentPage >= numPages} className="editor-action accent">次のページへ</button></div>

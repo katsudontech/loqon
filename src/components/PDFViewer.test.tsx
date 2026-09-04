@@ -187,6 +187,7 @@ describe('PDFViewer performance bounds', () => {
     })
     act(() => latestDocumentProps?.onLoadSuccess?.({ numPages: 1 }))
 
+    expect(host.querySelectorAll('[data-page]')).toHaveLength(1)
     const zoomIn = host.querySelector('[aria-label="PDFを拡大"]') as HTMLButtonElement
     const reset = host.querySelector('[aria-label="PDFの倍率をリセット"]') as HTMLButtonElement
     act(() => zoomIn.click())

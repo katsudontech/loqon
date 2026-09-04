@@ -36,7 +36,7 @@ const getInitialWidth = () => (
 type Props = {
   url: string
   currentPage: number
-  /** A bounded list of pages to show (the editor uses current + next). */
+  /** An optional bounded list of pages to show. */
   pages?: number[]
   onDocumentLoadSuccess?: (numPages: number) => void
   fitToContainer?: boolean
@@ -265,7 +265,7 @@ export function PDFViewer({
                 >
                   {!fitToContainer && (
                     <div className="w-full bg-zinc-100 text-center text-zinc-700 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-300 shrink-0">
-                      {index === 0 ? `現在のページ (${pageNumber}P)` : `次のページ (${pageNumber}P)`}
+                      {index === 0 ? `現在のページ ${pageNumber} / ${numPages}` : `次のページ ${pageNumber} / ${numPages}`}
                     </div>
                   )}
                   <Page
