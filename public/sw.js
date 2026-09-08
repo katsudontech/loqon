@@ -1,5 +1,7 @@
 /* Loqon offline shell and project-media worker. User media and app shell have
  * separate caches so an app update never evicts an explicitly saved project. */
+// Revision 2026-09-08.2: change the worker bytes so existing installations
+// adopt the updated CSP that permits connections to Supabase storage.
 const MEDIA_CACHE = 'loqon-project-media-v1'
 const SHELL_CACHE = 'loqon-shell-v1'
 const SHELL_ASSETS = []
