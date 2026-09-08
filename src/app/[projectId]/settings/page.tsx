@@ -23,11 +23,11 @@ export default async function SettingsPage({ params }: Props) {
                     <p className="page-lede">プロジェクト名、音源、構成図を更新します。</p>
                 </div>
                 <Link href={`/${projectId}/edit`} className="button-quiet">
-                    編集画面に戻る
+                    構成を合わせる
                 </Link>
             </div>
 
-            <p className="alert alert-warning mt-4" role="note">音源やPDFを置き換えると、記録済みの時刻やページ範囲が合わなくなる場合があります。置き換え後に構成・パート分けを確認し、必要なら記録を修正してください。</p>
+            <p className="alert alert-warning mt-4" role="note">音源やPDFを置き換えると、記録済みの時刻やページ範囲が合わなくなる場合があります。置き換え後に「構成を合わせる」「パートを分ける」を確認し、必要なら記録を修正してください。</p>
             <div className="mt-8">
                 <ProjectForm project={project} />
             </div>

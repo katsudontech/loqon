@@ -22,6 +22,7 @@ alter table public.practice_parts add column if not exists start_page integer;
 alter table public.practice_parts add column if not exists end_page integer;
 create index if not exists composition_cues_project_time_idx on public.composition_cues(project_id, start_time, id);
 create index if not exists practice_parts_project_time_idx on public.practice_parts(project_id, start_time, id);
+create unique index if not exists composition_cues_project_start_unique on public.composition_cues(project_id, start_time);
 do $$ begin
   if not exists (select 1 from pg_constraint where conname = 'composition_cues_project_id_fkey') then alter table public.composition_cues add constraint composition_cues_project_id_fkey foreign key (project_id) references public.projects(id) on delete cascade not valid; end if;
   if not exists (select 1 from pg_constraint where conname = 'practice_parts_project_id_fkey') then alter table public.practice_parts add constraint practice_parts_project_id_fkey foreign key (project_id) references public.projects(id) on delete cascade not valid; end if;
@@ -77,7 +78,13 @@ from (
     row_number() over (partition by marker.project_id, marker.start_time order by marker.id) as same_time_order
   from public.timeline_markers marker
 ) grouped
-where same_time_order = 1 and not exists (select 1 from public.practice_parts part where part.id = grouped.id);
+where same_time_order = 1
+  and not exists (
+    select 1 from public.practice_parts part
+    where part.id = grouped.id
+       or (part.project_id = grouped.project_id and part.start_time = grouped.start_time)
+  );
+create unique index if not exists practice_parts_project_start_unique on public.practice_parts(project_id, start_time);
 
 -- Composition is the first marker plus actual page changes. Repeated rows at
 -- the same time/page are intentionally excluded; their names are not lost from
@@ -85,12 +92,18 @@ where same_time_order = 1 and not exists (select 1 from public.practice_parts pa
 insert into public.composition_cues(id, project_id, page_number, start_time, name)
 select id, project_id, page_number, start_time, name
 from (
-  select marker.*, lag(page_number) over (partition by project_id order by start_time, id) as previous_page,
-    row_number() over (partition by project_id, start_time order by id) as same_time_order
-  from public.timeline_markers marker
+  select selected.*, lag(page_number) over (partition by project_id order by start_time, id) as previous_page
+  from (
+    select distinct on (marker.project_id, marker.start_time) marker.id, marker.project_id, marker.page_number, marker.start_time, marker.name
+    from public.timeline_markers marker order by marker.project_id, marker.start_time, marker.id
+  ) selected
 ) legacy
-where same_time_order = 1 and (previous_page is null or previous_page <> page_number)
-  and not exists (select 1 from public.composition_cues cue where cue.id = legacy.id);
+where (previous_page is null or previous_page <> page_number)
+  and not exists (
+    select 1 from public.composition_cues cue
+    where cue.id = legacy.id
+       or (cue.project_id = legacy.project_id and cue.start_time = legacy.start_time)
+  );
 
 create or replace function public.get_public_project_timeline(p_project_id uuid)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
@@ -113,13 +126,16 @@ returns bigint language plpgsql security definer set search_path = '' as $$
 declare project_row public.projects%rowtype; cue jsonb; previous double precision := -1; next_version bigint;
 begin
   if p_duration is null or p_duration <> p_duration or p_duration <= 0 or p_duration = 'Infinity'::double precision or p_duration = '-Infinity'::double precision then raise exception using errcode = '22023', message = 'audio duration must be finite and positive'; end if;
+  if p_expected_version is null or p_expected_version < 0 then raise exception using errcode = '22023', message = 'expected composition version must be non-negative'; end if;
+  if p_num_pages is not null and p_num_pages < 1 then raise exception using errcode = '22023', message = 'number of PDF pages must be positive'; end if;
   select * into project_row from public.projects where id = p_project_id for update;
   if not found then raise exception using errcode = 'P0002', message = 'project not found'; end if;
   if not coalesce(p_force, false) and p_expected_version is distinct from project_row.composition_version then raise exception using errcode = 'P0001', message = 'composition conflict'; end if;
-  if jsonb_typeof(p_cues) <> 'array' or jsonb_array_length(p_cues) = 0 or jsonb_array_length(p_cues) > 500 then raise exception using errcode = '22023', message = 'composition cues must contain 1 to 500 items'; end if;
+  if p_cues is null or jsonb_typeof(p_cues) <> 'array' or jsonb_array_length(p_cues) = 0 or jsonb_array_length(p_cues) > 500 then raise exception using errcode = '22023', message = 'composition cues must contain 1 to 500 items'; end if;
   if exists (select 1 from jsonb_array_elements(p_cues) item group by item.value->>'id' having count(*) > 1) then raise exception using errcode = '22023', message = 'composition cue ids must be unique'; end if;
   for cue in select value from jsonb_array_elements(p_cues) loop
     if jsonb_typeof(cue) <> 'object' or jsonb_typeof(cue->'id') <> 'string' or jsonb_typeof(cue->'start_time') <> 'number' or jsonb_typeof(cue->'page_number') <> 'number' then raise exception using errcode = '22023', message = 'composition cue JSON shape is invalid'; end if;
+    begin perform (cue->>'id')::uuid; exception when others then raise exception using errcode = '22023', message = 'composition cue id must be a UUID'; end;
     if (cue->>'start_time')::double precision <> (cue->>'start_time')::double precision or (cue->>'start_time')::double precision < 0 or (cue->>'start_time')::double precision >= p_duration then raise exception using errcode = '22023', message = 'composition cue time must be finite and before duration'; end if;
     if (cue->>'start_time')::double precision <= previous or (cue->>'page_number')::integer < 1 or (p_num_pages is not null and (cue->>'page_number')::integer > p_num_pages) then raise exception using errcode = '22023', message = 'composition cue is invalid'; end if;
     if cue ? 'name' and jsonb_typeof(cue->'name') not in ('string', 'null') then raise exception using errcode = '22023', message = 'composition cue name must be a string or null'; end if;
@@ -138,13 +154,17 @@ create or replace function public.replace_practice_parts(p_project_id uuid, p_pa
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare project_row public.projects%rowtype; part jsonb; previous double precision := -1; next_version bigint; v_count integer;
 begin
+  if p_duration is null or p_duration <> p_duration or p_duration <= 0 or p_duration = 'Infinity'::double precision or p_duration = '-Infinity'::double precision then raise exception using errcode = '22023', message = 'audio duration must be finite and positive'; end if;
+  if p_expected_version is null or p_expected_version < 0 then raise exception using errcode = '22023', message = 'expected practice version must be non-negative'; end if;
   select * into project_row from public.projects where id = p_project_id for update;
   if not found then raise exception using errcode = 'P0002', message = 'project not found'; end if;
   if not coalesce(p_force, false) and p_expected_version is distinct from project_row.practice_version then raise exception using errcode = 'P0001', message = 'practice parts conflict'; end if;
-  if jsonb_typeof(p_parts) <> 'array' or jsonb_array_length(p_parts) = 0 or jsonb_array_length(p_parts) > 500 then raise exception using errcode = '22023', message = 'practice parts must contain 1 to 500 items'; end if;
+  if p_parts is null or jsonb_typeof(p_parts) <> 'array' or jsonb_array_length(p_parts) = 0 or jsonb_array_length(p_parts) > 500 then raise exception using errcode = '22023', message = 'practice parts must contain 1 to 500 items'; end if;
   if exists (select 1 from jsonb_array_elements(p_parts) item group by item.value->>'id' having count(*) > 1) then raise exception using errcode = '22023', message = 'practice part ids must be unique'; end if;
   for part in select value from jsonb_array_elements(p_parts) loop
     if jsonb_typeof(part) <> 'object' or jsonb_typeof(part->'id') <> 'string' or jsonb_typeof(part->'start_time') <> 'number' or jsonb_typeof(part->'end_time') <> 'number' then raise exception using errcode = '22023', message = 'practice part JSON shape is invalid'; end if;
+    begin perform (part->>'id')::uuid; exception when others then raise exception using errcode = '22023', message = 'practice part id must be a UUID'; end;
+    if part ? 'name' and jsonb_typeof(part->'name') not in ('string', 'null') then raise exception using errcode = '22023', message = 'practice part name must be a string or null'; end if;
     if char_length(coalesce(part->>'name', '')) > 100 then raise exception using errcode = '22023', message = 'practice part name must be 100 characters or fewer'; end if;
     if (part->>'start_time')::double precision <> (part->>'start_time')::double precision or (part->>'end_time')::double precision <> (part->>'end_time')::double precision or (part->>'start_time')::double precision <= previous or (part->>'end_time')::double precision <= (part->>'start_time')::double precision or (part->>'end_time')::double precision > p_duration or (nullif(part->>'start_page', '') is not null and nullif(part->>'end_page', '') is not null and (part->>'start_page')::integer > (part->>'end_page')::integer) then raise exception using errcode = '22023', message = 'practice parts must be strictly ordered and inside duration'; end if;
     previous := (part->>'start_time')::double precision;

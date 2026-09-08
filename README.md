@@ -26,8 +26,8 @@
 - **構成表と音源の登録**\
   構成表のPDFと音源ファイルを登録し、一つのプロジェクトとして管理できます。
 
-- **構成編集とパート分け**\
-  構成編集ではPDFページの切り替わりだけを記録します。パート分け画面ではその構成キューを参照しながら、同じページ内も含めて練習区間を別に設定できます。
+- **構成を曲に合わせる → パートを分ける → 練習する**\
+  構成を曲に合わせる画面ではPDFページの切り替わりだけを記録します。パートを分ける画面ではその構成キューを参照しながら、同じページ内も含めて練習区間を別に設定します。
 
 - **構成表と音源の同期再生**\
   音源の再生位置に合わせて、表示する構成表のページが自動的に切り替わります。
@@ -64,7 +64,7 @@
 音源の再生位置と構成表のページを正確に対応させながら、同じデータをパート練習にも利用する必要がありました。
 
 **対応:**\
-構成キュー（時刻・ページ）と練習パート（開始・終了・名前）を別のデータとして保存します。プレイヤーはPDF表示に構成キューだけを使い、ループや前後移動には練習パートだけを使います。旧`timeline_markers`は読み取り時に構成キューとパートへ移行します。
+構成キュー（時刻・ページ）と練習パート（開始・終了・名前）を別のデータとして保存します。プレイヤーはPDF表示に構成キューだけを使い、ループや前後移動には練習パートだけを使います。旧`timeline_markers`は読み取り時に構成キューとパートへ移行します。同じページで異なる時刻の行は残し、同じ時刻の行は正の長さのパートを作れないため決定的に一つへまとめます。
 
 **結果:**\
 例えば1つのパート内でPDFを1→2→3と切り替えたり、同じページ内をA→Bに分割したりできます。
@@ -172,10 +172,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 Supabaseでは、次のリソースが必要です。初期スキーマ、RPC、Storage設定はマイグレーションで再現できます。
 
 - プロジェクト情報を保存する`projects`テーブル
-- タイムラインを保存する`timeline_markers`テーブル
+- 旧形式との互換用`timeline_markers`と、構成切り替え用`composition_cues`、練習範囲用`practice_parts`テーブル
 - 音源とPDFを保存する公開Storageバケット`projects`（最大50MB、許可MIMEタイプは音源の対応形式と`application/pdf`）
-- `create_project_by_id`、`update_project_by_id`、`replace_timeline_markers`関数
-- タイムラインは既知のプロジェクトUUIDだけで読み書きでき、0秒・1ページ目のマーカーを必須とします。保存時は音源の実測durationとtimeline versionによる楽観的同時実行制御を行います。旧2引数の保存RPCは古いクライアントの上書きを防ぐため失敗します。
+- `create_project_by_id`、`update_project_by_id`、`replace_composition_cues`、`replace_practice_parts`と旧互換用`replace_timeline_markers`関数
+- 構成とパートは別々のversion/timestampで楽観的同時実行制御を行います。構成は0秒・1ページ目から、パートは0秒から実測durationまで隙間なく連続することを保存時に検証します。旧2引数の保存RPCは古いクライアントの上書きを防ぐため失敗します。
 
 Supabase CLIで、ファイル名順に次のマイグレーションを適用します。新規環境では全てを、既存環境では未適用分を適用してください。リポジトリにはSQLファイルを追加するだけで、本番へ自動適用は行いません。
 
@@ -188,7 +188,7 @@ supabase/migrations/20260821000000_timeline_versions_and_validation.sql
 supabase/migrations/20260908000000_separate_composition_and_practice.sql
 ```
 
-`20260908000000_separate_composition_and_practice.sql`は`composition_cues`と`practice_parts`、それぞれのversion/timestamp、CAS付き保存RPCを追加するforward-only migrationです。旧`timeline_markers`は削除せず、既存行から構成キュー（最初の行と実際のページ変更）と、同じページ・同じ時刻を含む全パートを作成します。適用後も旧行を読み取れるため、アプリは段階的に切り替えられます。本番DBへはこのリポジトリから自動適用しません。
+`20260908000000_separate_composition_and_practice.sql`は`composition_cues`と`practice_parts`、それぞれのversion/timestamp、CAS付き保存RPCを追加するforward-only migrationです。旧`timeline_markers`は削除せず、既存行から構成キュー（最初の行と実際のページ変更）と練習パートを作成します。異なる時刻の同じページ境界は保持しますが、同じ時刻の複数行は正の長さのパートにできないため、安定した最初の行と最初の名前へ決定的に統合します。適用後も旧行を読み取れるため、アプリは段階的に切り替えられます。本番DBへはこのリポジトリから自動適用しません。
 
 初期マイグレーションはテーブル、FK、インデックス、入力チェック、Storageバケットと必要な匿名Storage INSERT policyを整備します。既存行を削除せず、既存データと衝突する可能性があるFK・チェックは`NOT VALID`で追加して新規書き込みから適用します。必要に応じて既存データを確認してから`VALIDATE CONSTRAINT`を実行してください。公開バケットの既知URLからの読み取りは維持しますが、DBの直接SELECTとStorageのSELECT/list policyは付与しないため、プロジェクト列挙はできません。
 

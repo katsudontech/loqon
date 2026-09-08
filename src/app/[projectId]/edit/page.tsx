@@ -24,9 +24,9 @@ export default async function EditPage({ params }: Props) {
             <div className="project-header">
                 <div className="project-header-main">
                     <h1>{project.title || '名称未設定プロジェクト'}</h1>
-                    <span className="project-header-id">EDITOR / {projectId.slice(0, 8)}</span>
+                    <span className="project-header-id">構成を合わせる / {projectId.slice(0, 8)}</span>
                 </div>
-                <div className="project-header-actions"><Link href={`/${projectId}/parts`} className="console-link">パート分け</Link><Link href={`/${projectId}/settings`} className="console-link">
+                <div className="project-header-actions"><Link href={`/${projectId}/parts`} className="console-link flow-link">パートを分ける</Link><Link href={`/${projectId}/settings`} className="console-link">
                     <svg className="console-icon" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" /><path d="m19 13.5 1.2 1-.1 1.8-1.7 1-1.5-.6a8 8 0 0 1-1.3.8l-.4 1.6-1.6.7-1.4-1a8 8 0 0 1-1.6 0l-1.4 1-1.6-.7-.4-1.6a8 8 0 0 1-1.3-.8l-1.5.6-1.7-1 .1-1.8 1.2-1a8 8 0 0 1 0-1.7l-1.2-1 .1-1.8 1.7-1 1.5.6a8 8 0 0 1 1.3-.8l.4-1.6 1.6-.7 1.4 1a8 8 0 0 1 1.6 0l1.4-1 1.6.7.4 1.6a8 8 0 0 1 1.3.8l1.5-.6 1.7 1-.1 1.8-1.2 1a8 8 0 0 1 0 1.7Z" /></svg> <span className="console-label">設定</span>
                 </Link></div>
             </div>
@@ -37,7 +37,7 @@ export default async function EditPage({ params }: Props) {
                     pdfUrl={pdfUrl}
                     initialMarkers={timeline.markers}
                     initialVersion={timeline.compositionVersion}
-                    initialUpdatedAt={timeline.updatedAt}
+                    initialUpdatedAt={timeline.compositionUpdatedAt}
                     initialCues={timeline.compositionCues}
                     compositionVersion={timeline.compositionVersion}
                     compositionUpdatedAt={timeline.compositionUpdatedAt}
@@ -53,5 +53,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const project = await getPublicProject(projectId)
     if (!project) notFound()
     const title = project.title?.trim() || '名称未設定プロジェクト'
-    return { title: `編集: ${title} | Loqon` }
+    return { title: `構成を合わせる: ${title} | Loqon` }
 }

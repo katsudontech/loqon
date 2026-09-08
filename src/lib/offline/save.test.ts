@@ -60,6 +60,24 @@ describe('offline save activation', () => {
     expect(db.putOfflineProject).toHaveBeenCalledOnce()
   })
 
+  it('does not download media for a practice-version-only update', async () => {
+    const old = { id: 'practice-only', title: 'old', audioUrl: 'audio', pdfUrl: 'pdf', audioBytes: 12, pdfBytes: 24, timelineVersion: 1, timelineUpdatedAt: null, compositionVersion: 3, compositionUpdatedAt: 'composition', practiceVersion: 1, practiceUpdatedAt: 'old-practice', markers: [], compositionCues: [], practiceParts: [], savedAt: 1 }
+    db.getOfflineProject.mockResolvedValue(old)
+    cache.hasCompleteCachedResponse.mockResolvedValue(true)
+    const cached = { match: vi.fn(async (url: string) => url.includes('offline-manifest') ? new Response(JSON.stringify({ cmaps: [] })) : new Response('cached', { status: 200 })), put: vi.fn(), delete: vi.fn() }
+    vi.stubGlobal('caches', { open: vi.fn(async () => cached) })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await saveOfflineProject({ ...old, practiceVersion: 2, practiceUpdatedAt: 'new-practice' })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(result.practiceVersion).toBe(2)
+    expect(result.audioBytes).toBe(12)
+    expect(result.pdfBytes).toBe(24)
+    expect(db.putOfflineProject).toHaveBeenCalledOnce()
+  })
+
   it('rebuilds missing app assets instead of returning an otherwise unchanged record', async () => {
     const old = { id: 'repair-shell', title: 'same', audioUrl: 'audio', pdfUrl: 'pdf', audioBytes: 12, pdfBytes: 24, timelineVersion: 1, timelineUpdatedAt: null, markers: [], appAssetUrls: ['/missing-shell.js'], savedAt: 1 }
     db.getOfflineProject.mockResolvedValue(old)

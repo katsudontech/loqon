@@ -28,16 +28,16 @@ export default async function PlayerPage({ params }: Props) {
             <div className="project-header">
                 <div className="project-header-main">
                     <h1>{project.title || '名称未設定プロジェクト'}</h1>
-                    <span className="project-header-id">PLAYER</span>
+                    <span className="project-header-id">練習する</span>
                 </div>
                 <div className="project-header-actions">
                     <ShareButton />
-                    <a href={`/${projectId}/parts`} className="console-link">パート分け</a>
+                    <a href={`/${projectId}/parts`} className="console-link flow-link">パートを分ける</a>
                     <a
                         href={`/${projectId}/edit`}
-                        className="console-link"
+                        className="console-link flow-link"
                     >
-                        <svg className="console-icon" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m4 16-.7 4.7L8 20l11-11-4-4L4 16Z" /><path d="m13 6 4 4" /></svg> <span className="console-label">エディタ</span>
+                        <svg className="console-icon" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m4 16-.7 4.7L8 20l11-11-4-4L4 16Z" /><path d="m13 6 4 4" /></svg> <span className="console-label">構成を合わせる</span>
                     </a>
                 </div>
             </div>

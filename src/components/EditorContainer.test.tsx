@@ -36,6 +36,7 @@ vi.mock('@/hooks/useTimelineEditor', () => ({
     saveMarkers: vi.fn(),
     replaceMarkersFromRemote: vi.fn(),
     restoreMarkers: vi.fn(),
+    undoLast: vi.fn(() => true),
     setValidationError: vi.fn(),
   }),
 }))
@@ -157,5 +158,40 @@ describe('EditorContainer page advance', () => {
     expect(latestPdfProps?.pages).toEqual([1])
     expect(latestPdfProps?.showEmptyNext).toBe(true)
     expect((host?.querySelector('button') && [...(host.querySelectorAll('button'))].find((button) => button.textContent === '次のページへ'))?.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('uses the composition action while paused and keeps browse-only navigation separate', () => {
+    audioState.currentTime = 12
+    act(() => root?.render(React.createElement(EditorContainer, {
+      audioUrl: '/song.mp3', pdfUrl: '/formation.pdf', projectId: 'project-1',
+      initialCues: [{ id: '00000000-0000-4000-8000-000000000001', time: 0, page: 1 }], compositionVersion: 2,
+    })))
+    const next = [...(host?.querySelectorAll('button') ?? [])].find((button) => button.textContent === '次を見る') as HTMLButtonElement
+    act(() => next.click())
+    expect(latestPdfProps?.currentPage).toBe(2)
+    const record = [...(host?.querySelectorAll('button') ?? [])].find((button) => button.textContent === 'ここで次の構成へ') as HTMLButtonElement
+    act(() => record.click())
+    expect(recordMarker).toHaveBeenCalledWith(12, 2)
+    expect(audioState.play).not.toHaveBeenCalled()
+    expect(latestPdfProps?.currentPage).toBe(2)
+  })
+
+  it('does not replace undo progression when a later composition recording fails', () => {
+    act(() => root?.render(React.createElement(EditorContainer, {
+      audioUrl: '/song.mp3', pdfUrl: '/formation.pdf', projectId: 'project-1',
+      initialCues: [{ id: '00000000-0000-4000-8000-000000000001', time: 0, page: 1 }], compositionVersion: 2,
+    })))
+    const record = () => [...(host?.querySelectorAll('button') ?? [])].find((button) => button.textContent === 'ここで次の構成へ') as HTMLButtonElement
+    recordMarker.mockReturnValueOnce(true).mockReturnValueOnce(false)
+    act(() => record().click())
+    audioState.currentTime = 20
+    act(() => root?.render(React.createElement(EditorContainer, {
+      audioUrl: '/song.mp3', pdfUrl: '/formation.pdf', projectId: 'project-1',
+      initialCues: [{ id: '00000000-0000-4000-8000-000000000001', time: 0, page: 1 }], compositionVersion: 2,
+    })))
+    act(() => record().click())
+    const undo = [...(host?.querySelectorAll('button') ?? [])].find((button) => button.textContent === '直前の記録を取り消す') as HTMLButtonElement
+    act(() => undo.click())
+    expect(latestPdfProps?.currentPage).toBe(1)
   })
 })

@@ -53,11 +53,11 @@ export default function Home() {
           <p className="eyebrow">Start here</p>
           <h2 id="steps-title">使い方</h2>
         </div>
+        <p className="home-copy">音源とPDFを登録したら、次の3ステップで準備できます。</p>
         <ol className="steps-list">
-          <li><span className="step-number" aria-hidden="true">1</span><div><h3>音源とPDFを登録する</h3><p>プロジェクトを作成し、音源ファイルとフォーメーションの構成図PDFをアップロードします。</p></div></li>
-          <li><span className="step-number" aria-hidden="true">2</span><div><h3>タイムラインに記録する</h3><p>音源を再生しながら、ページやパートが切り替わる時刻をタイムラインエディタに登録します。</p></div></li>
-          <li><span className="step-number" aria-hidden="true">3</span><div><h3>保存して練習する</h3><p>登録したタイミングでPDFが自動切り替え。パート練習やA-Bループで繰り返し確認できます。</p></div></li>
-          <li><span className="step-number" aria-hidden="true">4</span><div><h3>チームに共有する</h3><p>プロジェクトのURLをメンバーに送り、同じプレイヤー画面で練習します。</p></div></li>
+          <li><span className="step-number" aria-hidden="true">1</span><div><h3>構成を曲に合わせる</h3><p>音源を再生しながら、PDFページが切り替わる時刻だけを記録します。</p></div></li>
+          <li><span className="step-number" aria-hidden="true">2</span><div><h3>パートを分ける</h3><p>構成の切り替え位置を確認しながら、練習したい区間を同じページ内も含めて設定します。</p></div></li>
+          <li><span className="step-number" aria-hidden="true">3</span><div><h3>練習する</h3><p>ページの自動切り替え、パート練習、A-Bループで繰り返し確認できます。</p></div></li>
         </ol>
       </section>
 

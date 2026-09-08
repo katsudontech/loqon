@@ -46,12 +46,14 @@ export const useTimelineEditor = (initialMarkers: readonly LegacyMarker[] = [], 
     }, [])
     const clearMarkers = useCallback(() => {
         const nextMarkers = resetMarkers()
+        previousMarkersRef.current = null
         markersRef.current = nextMarkers
         setMarkers(nextMarkers)
         setValidationError('')
     }, [])
     const replaceMarkersFromRemote = useCallback((nextMarkers: readonly LegacyMarker[], version: number) => {
         const normalized = normalizeMarkers(nextMarkers, options.numPages)
+        previousMarkersRef.current = null
         markersRef.current = normalized
         setMarkers(normalized)
         setBaseline(normalized)
@@ -60,6 +62,7 @@ export const useTimelineEditor = (initialMarkers: readonly LegacyMarker[] = [], 
     }, [options.numPages])
     const restoreMarkers = useCallback((nextMarkers: readonly LegacyMarker[]) => {
         const normalized = normalizeMarkers(nextMarkers, options.numPages)
+        previousMarkersRef.current = null
         markersRef.current = normalized
         setMarkers(normalized)
         setValidationError('')
@@ -71,22 +74,22 @@ export const useTimelineEditor = (initialMarkers: readonly LegacyMarker[] = [], 
         const nextVersion = typeof data === 'number' ? data : timelineVersion + 1
         setTimelineVersion(nextVersion); setBaseline(markers); setValidationError(''); return nextVersion
     }, [markers, options.numPages, timelineVersion])
-    const saveComposition = useCallback(async (projectId: string, version: number, duration: number, numPages?: number | null, force = false) => {
+    const saveComposition = useCallback(async (projectId: string, duration: number, numPages?: number | null, force = false) => {
         if (!Number.isFinite(duration) || duration <= 0) throw new Error('音源の長さを取得できないため保存できません。')
         validateMarkers(markers, duration, numPages)
         const cues: CompositionCue[] = markers.map((marker) => ({ id: marker.id, time: marker.time, page: marker.page, name: marker.name }))
         const { data, error } = await supabase.rpc('replace_composition_cues', {
             p_project_id: projectId,
             p_cues: cues.map((cue) => ({ id: cue.id, start_time: cue.time, page_number: cue.page, name: cue.name ?? null })),
-            p_expected_version: version,
+            p_expected_version: timelineVersion,
             p_duration: duration,
             p_num_pages: numPages ?? null,
             p_force: force,
         })
         if (error) throw classifyTimelineError(error)
-        const nextVersion = typeof data === 'number' ? data : version + 1
+        const nextVersion = typeof data === 'number' ? data : timelineVersion + 1
         setTimelineVersion(nextVersion); setBaseline(markers); setValidationError(''); return nextVersion
-    }, [markers])
+    }, [markers, timelineVersion])
     const undoLast = useCallback(() => {
         if (!previousMarkersRef.current) return false
         markersRef.current = previousMarkersRef.current

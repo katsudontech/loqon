@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { addMarker, classifyTimelineError, convertDbRowsToMarkers, convertDbRowsToPlayerMarkers, convertMarkersToDbPayload, createMarkerId, isMarkerId, normalizeMarkers, parseTimelineDraft, serializeTimelineDraft, shouldOfferDraftRestore, type Marker } from '@/lib/timeline'
 import { getPartBounds, shiftPartIndices, shouldLoopAt } from '@/lib/partLoop'
-import { TimelineConflictError, deleteMarkerById, resetMarkers, updateMarkerById, migrateLegacyMarkers, validatePracticeParts } from '@/lib/timeline'
+import { TimelineConflictError, deleteMarkerById, resetMarkers, updateMarkerById, migrateLegacyMarkers, removePracticeBoundary, splitPracticePart, validatePracticeParts } from '@/lib/timeline'
 
 const id = (value: string) => value
 const base: Marker = { id: id('00000000-0000-4000-8000-000000000001'), time: 0, page: 1 }
@@ -98,6 +98,15 @@ describe('drafts and part bounds', () => {
     expect(() => validatePracticeParts(parts, 20)).not.toThrow()
     expect(() => validatePracticeParts([{ ...parts[0], endTime: 0 }], 20)).toThrow()
     expect(() => validatePracticeParts([{ ...parts[0] }, { ...parts[1], startTime: 0 }], 20)).toThrow()
+  })
+
+  it('splits and resizes adjacent practice ranges, and merges while retaining earlier names', () => {
+    const parts = [{ id: id('00000000-0000-4000-8000-000000000020'), startTime: 0, endTime: 20, name: '前' }]
+    const split = splitPracticePart(parts, 8)
+    expect(split.map((part) => [part.startTime, part.endTime])).toEqual([[0, 8], [8, 20]])
+    const resized = split.map((part, index) => index === 0 ? { ...part, endTime: 10 } : { ...part, startTime: 10 })
+    expect(resized.map((part) => [part.startTime, part.endTime])).toEqual([[0, 10], [10, 20]])
+    expect(removePracticeBoundary(resized, resized[1].id)).toEqual([{ ...parts[0], endTime: 20 }])
   })
 
   it('round trips drafts and rejects stale or identical candidates', () => {

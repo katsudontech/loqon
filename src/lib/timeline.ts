@@ -174,7 +174,9 @@ export function parseTimelineDraft(raw: string | null, projectId: string): Timel
         const savedAt = value.savedAt
         if (baseTimelineVersion < 0 || !Number.isFinite(Date.parse(savedAt))) return null
         if (value.baseUpdatedAt !== null && value.baseUpdatedAt !== undefined && (typeof value.baseUpdatedAt !== 'string' || !Number.isFinite(Date.parse(value.baseUpdatedAt)))) return null
-        return { schemaVersion: DRAFT_SCHEMA_VERSION, projectId, baseTimelineVersion, baseUpdatedAt: typeof value.baseUpdatedAt === 'string' ? value.baseUpdatedAt : null, savedAt, markers: normalizeMarkers(value.markers as LegacyMarker[]) }
+        if (value.baseCompositionVersion !== undefined && (!Number.isInteger(value.baseCompositionVersion) || value.baseCompositionVersion < 0)) return null
+        if (value.baseCompositionUpdatedAt !== undefined && value.baseCompositionUpdatedAt !== null && (typeof value.baseCompositionUpdatedAt !== 'string' || !Number.isFinite(Date.parse(value.baseCompositionUpdatedAt)))) return null
+        return { schemaVersion: DRAFT_SCHEMA_VERSION, projectId, baseTimelineVersion, baseUpdatedAt: typeof value.baseUpdatedAt === 'string' ? value.baseUpdatedAt : null, savedAt, markers: normalizeMarkers(value.markers as LegacyMarker[]), ...(Number.isInteger(value.baseCompositionVersion) ? { baseCompositionVersion: value.baseCompositionVersion } : {}), ...(typeof value.baseCompositionUpdatedAt === 'string' || value.baseCompositionUpdatedAt === null ? { baseCompositionUpdatedAt: value.baseCompositionUpdatedAt } : {}) }
     } catch { return null }
 }
 export function serializeTimelineDraft(draft: Omit<TimelineDraft, 'schemaVersion'>): string { return JSON.stringify({ ...draft, schemaVersion: DRAFT_SCHEMA_VERSION }) }

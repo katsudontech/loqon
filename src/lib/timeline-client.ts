@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { convertDbRowsToMarkers, migrateLegacyMarkers, normalizePracticeParts, type Marker, type CompositionCue, type PracticePart } from '@/lib/timeline'
+import { convertDbRowsToMarkers, migrateLegacyMarkers, type Marker, type CompositionCue, type PracticePart } from '@/lib/timeline'
 import type { Database } from '@/types/database.types'
 
 type TimelineMarkerRow = Database['public']['Tables']['timeline_markers']['Row']
@@ -16,7 +16,7 @@ export async function getClientTimelineSnapshot(projectId: string): Promise<Clie
   return {
     markers,
     compositionCues: Array.isArray(value.composition_cues) && value.composition_cues.length > 0 ? value.composition_cues.map((cue) => { const item = cue as Record<string, unknown>; return { id: String(item.id), time: Number(item.time ?? item.start_time), page: Number(item.page ?? item.page_number), name: typeof item.name === 'string' ? item.name : undefined } }) : migrated.compositionCues,
-    practiceParts: Array.isArray(value.practice_parts) && value.practice_parts.length > 0 ? normalizePracticeParts(value.practice_parts.map((part) => { const item = part as Record<string, unknown>; return { id: String(item.id), startTime: Number(item.startTime ?? item.start_time), endTime: Number(item.endTime ?? item.end_time), name: typeof item.name === 'string' ? item.name : undefined } }), Math.max(0, ...value.practice_parts.map((part) => Number((part as Record<string, unknown>).endTime ?? (part as Record<string, unknown>).end_time) || 0))) : migrated.practiceParts,
+    practiceParts: Array.isArray(value.practice_parts) && value.practice_parts.length > 0 ? value.practice_parts.map((part) => { const item = part as Record<string, unknown>; return { id: String(item.id), startTime: Number(item.startTime ?? item.start_time), endTime: Number(item.endTime ?? item.end_time), name: typeof item.name === 'string' ? item.name : undefined, startPage: Number.isInteger(item.start_page) ? Number(item.start_page) : undefined, endPage: Number.isInteger(item.end_page) ? Number(item.end_page) : undefined } }) : migrated.practiceParts,
     version: Number.isInteger(value.version) ? Number(value.version) : 0,
     updatedAt: typeof value.updated_at === 'string' ? value.updated_at : null,
     compositionVersion: Number.isInteger(value.composition_version) ? Number(value.composition_version) : Number(value.version ?? 0),

@@ -3,7 +3,7 @@ import 'server-only'
 import { cache } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/database.types'
-import { convertDbRowsToMarkers, migrateLegacyMarkers, normalizePracticeParts, type Marker, type CompositionCue, type PracticePart } from '@/lib/timeline'
+import { convertDbRowsToMarkers, migrateLegacyMarkers, type Marker, type CompositionCue, type PracticePart } from '@/lib/timeline'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 type TimelineMarkerRow = Database['public']['Tables']['timeline_markers']['Row']
@@ -77,7 +77,7 @@ export async function getPublicTimelineSnapshot(projectId: string): Promise<Publ
     : migrated.compositionCues
   const rawParts = (snapshot as { practice_parts?: unknown })?.practice_parts
   const practiceParts = Array.isArray(rawParts) && rawParts.length > 0
-    ? normalizePracticeParts(rawParts.map((part) => { const value = part as Record<string, unknown>; return { id: String(value.id), startTime: Number(value.startTime ?? value.start_time), endTime: Number(value.endTime ?? value.end_time), name: typeof value.name === 'string' ? value.name : undefined } }), Math.max(0, ...rawParts.map((part) => Number((part as Record<string, unknown>).endTime ?? (part as Record<string, unknown>).end_time) || 0)))
+    ? rawParts.map((part) => { const value = part as Record<string, unknown>; return { id: String(value.id), startTime: Number(value.startTime ?? value.start_time), endTime: Number(value.endTime ?? value.end_time), name: typeof value.name === 'string' ? value.name : undefined, startPage: Number.isInteger(value.start_page) ? Number(value.start_page) : undefined, endPage: Number.isInteger(value.end_page) ? Number(value.end_page) : undefined } })
     : migrated.practiceParts
   return {
     markers, compositionCues, practiceParts,
