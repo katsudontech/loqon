@@ -56,3 +56,37 @@ describe('useTimelineEditor concurrency save', () => {
     expect(rpcMock).toHaveBeenCalledWith('replace_timeline_markers', expect.objectContaining({ p_expected_version: 7, p_duration: 30, p_force: true }))
   })
 })
+
+describe('useTimelineEditor marker updates', () => {
+  let root: Root | undefined
+  let host: HTMLDivElement | undefined
+  let editor: ReturnType<typeof useTimelineEditor> | undefined
+
+  afterEach(() => {
+    if (root) act(() => root?.unmount())
+    host?.remove()
+    root = undefined
+    host = undefined
+    editor = undefined
+  })
+
+  it('retains two valid marker calls batched before a rerender', () => {
+    function Harness() {
+      editor = useTimelineEditor([{ time: 0, page: 1 }])
+      return null
+    }
+
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root?.render(React.createElement(Harness)))
+
+    act(() => {
+      expect(editor?.recordMarker(10, 2)).toBe(true)
+      expect(editor?.recordMarker(20, 3)).toBe(true)
+    })
+
+    expect(editor?.markers.map((marker) => marker.time)).toEqual([0, 10, 20])
+    expect(editor?.markers.map((marker) => marker.page)).toEqual([1, 2, 3])
+  })
+})

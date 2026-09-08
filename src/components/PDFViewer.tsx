@@ -38,6 +38,12 @@ type Props = {
   currentPage: number
   /** An optional bounded list of pages to show. */
   pages?: number[]
+  /** Labels for the bounded current/next preview cards. */
+  pageLabels?: { current: string; next: string; emptyNext?: string }
+  /** Render an empty next-card when the current page is the final page. */
+  showEmptyNext?: boolean
+  /** Layout for non-fit previews, used by the editor's two-card view. */
+  previewLayout?: 'stack' | 'grid'
   onDocumentLoadSuccess?: (numPages: number) => void
   fitToContainer?: boolean
   /** Keep one adjacent standby canvas for flicker-free forward page turns. */
@@ -48,6 +54,9 @@ export function PDFViewer({
   url,
   currentPage,
   pages,
+  pageLabels = { current: '現在のページ', next: '次のページ', emptyNext: '次のページはありません' },
+  showEmptyNext = false,
+  previewLayout = 'stack',
   onDocumentLoadSuccess,
   fitToContainer = true,
   renderStandbyPage = false,
@@ -242,7 +251,7 @@ export function PDFViewer({
               ref={stageRef}
               className={`relative w-full ${fitToContainer
                 ? `h-full flex-1 stage pdf-stage-inner ${zoom > 1 ? 'pdf-zoomed' : ''} ${isFocused ? 'pdf-focus-mode' : ''}`
-                : 'flex flex-col justify-center items-center gap-4'}`}
+                : `${previewLayout === 'grid' ? 'pdf-preview-grid' : 'flex flex-col'} justify-center items-center gap-4`}`}
             >
               {fitToContainer && <div className="pdf-tools" role="toolbar" aria-label="PDF表示操作">
                 <button type="button" className="icon-button" aria-label="PDFを縮小" onClick={() => setZoom((value) => Math.max(.75, Number((value - .25).toFixed(2))))}>−</button>
@@ -256,7 +265,7 @@ export function PDFViewer({
                   key={pageNumber}
                   className={`${fitToContainer
                     ? `pdf-page ${zoom > 1 && index === 0 ? 'pdf-page-zoomed' : ''} ${index === 0 ? 'z-10' : 'z-0 opacity-0 pointer-events-none'}`
-                    : 'flex flex-col items-center justify-center w-full bg-white border border-zinc-300 rounded overflow-hidden'}`}
+                    : 'pdf-preview-card flex flex-col items-center justify-center w-full bg-white border border-zinc-300 rounded overflow-hidden'}`}
                   role={fitToContainer && index === 0 ? 'button' : undefined}
                   tabIndex={fitToContainer && index === 0 ? 0 : undefined}
                   aria-label={fitToContainer && index === 0 ? (isFocused ? 'PDFのフォーカス表示を終了' : 'PDFをフォーカス表示') : undefined}
@@ -265,7 +274,7 @@ export function PDFViewer({
                 >
                   {!fitToContainer && (
                     <div className="w-full bg-zinc-100 text-center text-zinc-700 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-300 shrink-0">
-                      {index === 0 ? `現在のページ ${pageNumber} / ${numPages}` : `次のページ ${pageNumber} / ${numPages}`}
+                      {index === 0 ? `${pageLabels.current} ${pageNumber} / ${numPages}` : `${pageLabels.next} ${pageNumber} / ${numPages}`}
                     </div>
                   )}
                   <Page
@@ -282,6 +291,14 @@ export function PDFViewer({
                   />
                 </div>
               ))}
+              {!fitToContainer && showEmptyNext && (
+                <div className="pdf-preview-card pdf-preview-empty flex flex-col items-center justify-center w-full border border-dashed border-zinc-400 rounded overflow-hidden bg-zinc-100 text-zinc-600">
+                  <div className="w-full bg-zinc-200 text-center text-zinc-700 text-xs sm:text-sm font-bold py-1 sm:py-2 border-b border-zinc-300">
+                    {pageLabels.next}
+                  </div>
+                  <p className="px-4 py-10 text-center text-sm">{pageLabels.emptyNext ?? '次のページはありません'}</p>
+                </div>
+              )}
             </div>
           </div>
         )}

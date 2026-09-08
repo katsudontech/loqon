@@ -33,6 +33,8 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     const [draftOpen, setDraftOpen] = useState(false)
     const [remoteUpdatedAt, setRemoteUpdatedAt] = useState<string | null>(initialUpdatedAt)
     const isSavingRef = useRef(false)
+    const canAdvancePage = numPages !== null && currentPage < numPages
+    const previewPages = canAdvancePage ? [currentPage, currentPage + 1] : [currentPage]
 
     useEffect(() => {
         try {
@@ -70,7 +72,7 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
     }, [dirty])
 
     const handleRecordPageTurn = () => {
-        if (!audioState.isPlaying) { setValidationError('音楽を再生してから記録してください'); return }
+        if (!canAdvancePage) return
         const nextPage = currentPage + 1
         if (recordMarker(audioState.currentTime, nextPage)) setCurrentPage(nextPage)
     }
@@ -161,10 +163,19 @@ export const EditorContainer = ({ audioUrl, pdfUrl, initialMarkers = [], project
                 </div>}
             </aside>
 
-            <div className="editor-pdf"><PDFViewerWrapper url={pdfUrl} currentPage={currentPage} onDocumentLoadSuccess={setNumPages} fitToContainer={false} /></div>
+            <div className="editor-pdf"><PDFViewerWrapper
+                url={pdfUrl}
+                currentPage={currentPage}
+                pages={previewPages}
+                pageLabels={{ current: '現在の構成', next: '次の構成', emptyNext: '次の構成はありません' }}
+                showEmptyNext={numPages !== null && !canAdvancePage}
+                previewLayout="grid"
+                onDocumentLoadSuccess={setNumPages}
+                fitToContainer={false}
+            /></div>
             <div className="editor-actions">
                 <AudioControls {...audioState} />
-                <div className="editor-action-row"><button type="button" onClick={handleRecordPartChange} className="editor-action">パート区切りを記録</button><button type="button" onClick={handleRecordPageTurn} disabled={numPages !== null && currentPage >= numPages} className="editor-action accent">次のページへ</button></div>
+                <div className="editor-action-row"><button type="button" onClick={handleRecordPartChange} className="editor-action">パート区切りを記録</button><button type="button" onClick={handleRecordPageTurn} disabled={!canAdvancePage} className="editor-action accent">次のページへ</button></div>
                     {(validationError || saveError) && <p role="alert" aria-live="assertive" className="alert alert-error">{validationError || saveError}</p>}
                     {saveMessage && <p role="status" aria-live="polite" className="alert alert-success">{saveMessage}</p>}
                     <button type="button" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage <= 1} className="button-quiet w-full">← 前のページに戻る</button>

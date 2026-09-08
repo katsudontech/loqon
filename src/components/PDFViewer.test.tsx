@@ -174,6 +174,42 @@ describe('PDFViewer performance bounds', () => {
       .toEqual(['3', '4'])
   })
 
+  it('renders formation labels and a bounded empty next state on the final page', () => {
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+
+    act(() => {
+      root?.render(React.createElement(PDFViewer, {
+        url: '/formation.pdf',
+        currentPage: 1,
+        pages: [1, 2],
+        pageLabels: { current: '現在の構成', next: '次の構成', emptyNext: '次の構成はありません' },
+        fitToContainer: false,
+      }))
+    })
+    act(() => latestDocumentProps?.onLoadSuccess?.({ numPages: 2 }))
+
+    expect(host.querySelectorAll('[data-page]')).toHaveLength(2)
+    expect(host.textContent).toContain('現在の構成 1 / 2')
+    expect(host.textContent).toContain('次の構成 2 / 2')
+
+    act(() => {
+      root?.render(React.createElement(PDFViewer, {
+        url: '/formation.pdf',
+        currentPage: 2,
+        pages: [2],
+        pageLabels: { current: '現在の構成', next: '次の構成', emptyNext: '次の構成はありません' },
+        showEmptyNext: true,
+        fitToContainer: false,
+      }))
+    })
+
+    expect(host.querySelectorAll('[data-page]')).toHaveLength(1)
+    expect(host.textContent).toContain('現在の構成 2 / 2')
+    expect(host.textContent).toContain('次の構成はありません')
+  })
+
   it('exposes working zoom, reset, and focus-mode controls', () => {
     host = document.createElement('div')
     document.body.append(host)
