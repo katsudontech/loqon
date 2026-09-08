@@ -253,6 +253,9 @@ describe('PDF/PWA source safeguards', () => {
     const forbiddenCdn = ['un', 'pkg'].join('')
     expect(pdfSource.toLowerCase()).not.toContain(forbiddenCdn)
     expect(pdfSource).toContain('/pdfjs/${pdfjs.version}/cmaps/')
+    expect(pdfSource).toContain('/pdfjs/${pdfjs.version}/standard_fonts/')
+    expect(pdfSource).toContain('/pdfjs/${pdfjs.version}/wasm/')
+    expect(pdfSource).toContain('/pdfjs/${pdfjs.version}/iccs/')
     const misleadingPhrases = [
       ['通信量が', '大幅に', '削減'].join(''),
       ['オフ', 'ライン'].join(''),

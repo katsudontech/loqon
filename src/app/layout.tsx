@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { LineBrowserWarning } from "@/components/LineBrowserWarning";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className="app-body flex flex-col">
         <SiteHeader />
+        <ServiceWorkerRegistration />
         <main className="flex-1 flex flex-col relative overflow-x-hidden">
           {children}
         </main>

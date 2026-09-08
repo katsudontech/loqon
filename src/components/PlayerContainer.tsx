@@ -190,7 +190,7 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
     return (
         <div className="player-layout flex flex-col w-full h-full overflow-hidden relative">
             {/* 隠しオーディオ要素 */}
-            <audio ref={audioRef} src={audioUrl} preload="metadata" />
+            <audio ref={audioRef} src={audioUrl} preload="metadata" crossOrigin="anonymous" />
 
             {/* PDFビューア (スクロールしないように画面にフィットさせる領域) */}
             <div className="player-pdf-stage">

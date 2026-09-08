@@ -7,16 +7,20 @@ import 'react-pdf/dist/Page/TextLayer.css'
 
 // Keep worker setup beside Document/Page so module execution order cannot reset
 // it. Turbopack bundles this worker, making PDF.js same-origin and CSP-safe.
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+export const PDF_WORKER_URL = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
 ).toString()
+pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
 
 // react-pdf compares options by reference. A module-scope object prevents a
 // PDF.js reload whenever the parent updates audio or timeline state.
 export const PDF_DOCUMENT_OPTIONS = Object.freeze({
   cMapUrl: `/pdfjs/${pdfjs.version}/cmaps/`,
   cMapPacked: true,
+  standardFontDataUrl: `/pdfjs/${pdfjs.version}/standard_fonts/`,
+  wasmUrl: `/pdfjs/${pdfjs.version}/wasm/`,
+  iccUrl: `/pdfjs/${pdfjs.version}/iccs/`,
 })
 
 /** Keep the canvas tree bounded even when a caller supplies many pages. */

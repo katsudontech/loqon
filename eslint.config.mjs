@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Versioned vendor assets copied verbatim from pdfjs-dist.
+    "public/pdfjs/**",
   ]),
 ]);
 

@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { OfflineProject } from '@/lib/offline/types';
+import { listOfflineProjects } from '@/lib/offline/db';
 
 type RecentProject = {
   id: string;
@@ -33,6 +35,8 @@ const isRecentProject = (value: unknown): value is RecentProject => (
 
 export default function SelectPage() {
   const router = useRouter();
+  const [savedProjects, setSavedProjects] = useState<OfflineProject[]>([]);
+  useEffect(() => { void listOfflineProjects().then(setSavedProjects).catch(() => setSavedProjects([])); }, []);
   const storedProjects = useSyncExternalStore(
     subscribeToRecentProjects,
     getRecentProjectsSnapshot,
@@ -48,6 +52,11 @@ export default function SelectPage() {
       return [];
     }
   }, [storedProjects]);
+  const mergedProjects = useMemo(() => {
+    const byId = new Map(projects.map((project) => [project.id, project]));
+    for (const project of savedProjects) byId.set(project.id, { id: project.id, title: project.title, lastVisited: project.savedAt });
+    return [...byId.values()].sort((a, b) => b.lastVisited - a.lastVisited);
+  }, [projects, savedProjects]);
   const isLoaded = storedProjects !== null;
 
   const formatDate = (ts: number) => {
@@ -66,7 +75,7 @@ export default function SelectPage() {
           <div className="empty-panel" aria-live="polite">
             <p>履歴を読み込んでいます…</p>
           </div>
-        ) : projects.length === 0 ? (
+        ) : mergedProjects.length === 0 ? (
           <div className="empty-panel">
             <h2>履歴がありません</h2>
             <p>
@@ -78,11 +87,14 @@ export default function SelectPage() {
           </div>
         ) : (
           <div className="recent-list">
-            {projects.map((p) => (
+            {mergedProjects.map((p) => (
               <button
                 type="button"
                 key={p.id}
-                onClick={() => router.push(`/${p.id}`)}
+                onClick={() => {
+                  if (savedProjects.some((saved) => saved.id === p.id)) window.location.assign(`/offline?project=${encodeURIComponent(p.id)}`)
+                  else router.push(`/${p.id}`)
+                }}
                 className="recent-item"
               >
                 <div>

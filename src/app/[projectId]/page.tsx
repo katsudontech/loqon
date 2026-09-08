@@ -1,8 +1,8 @@
-import { getPublicProject, getPublicTimelineMarkers } from "@/lib/projects"
-import { convertDbRowsToPlayerMarkers } from "@/lib/timeline"
+import { getPublicProject, getPublicTimelineSnapshot } from "@/lib/projects"
 import { PlayerContainer } from "@/components/PlayerContainer"
 import { ShareButton } from "@/components/ShareButton"
 import { RecentProjectTracker } from "@/components/RecentProjectTracker"
+import { OfflineProjectControl } from "@/components/OfflineProjectControl"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 
@@ -17,10 +17,8 @@ export default async function PlayerPage({ params }: Props) {
 
     if (!project) notFound()
 
-    const markersData = await getPublicTimelineMarkers(projectId)
-
-    // DBのtimeline_markers形式を、Playerで扱いやすいMarker型にマッピングする
-    const markers = convertDbRowsToPlayerMarkers(markersData)
+    const snapshot = await getPublicTimelineSnapshot(projectId)
+    const markers = snapshot.markers
 
     return (
         <div className="project-frame">
@@ -42,6 +40,16 @@ export default async function PlayerPage({ params }: Props) {
                     </a>
                 </div>
             </div>
+
+            <OfflineProjectControl project={{
+                id: project.id,
+                title: project.title || '名称未設定プロジェクト',
+                audioUrl: project.audio_url,
+                pdfUrl: project.pdf_url,
+                timelineVersion: snapshot.version,
+                timelineUpdatedAt: snapshot.updatedAt,
+                markers,
+            }} />
 
             {/* Player Container takes remaining space */}
             <div className="console-content">

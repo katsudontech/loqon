@@ -136,6 +136,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .floating-notice { position: fixed; right: 20px; bottom: max(20px, env(safe-area-inset-bottom)); z-index: 100; width: min(390px, calc(100vw - 40px)); padding: 16px; background: var(--paper); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 8px; } .floating-notice h3 { margin: 0; font-size: 16px; } .floating-notice p { color: var(--muted); font-size: 13px; }
 .warning-screen { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgb(16 17 16 / 82%); } .warning-screen .dialog { max-width: 470px; } .warning-screen strong { color: var(--accent-dark); }
 .install-icon { width: 20px; height: 20px; display: inline; vertical-align: -4px; }
+.offline-control { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 14px; color: #d8dbd7; background: var(--console); border-bottom: 1px solid #454745; font-size: 12px; }
+.offline-control small { color: #9b9f9b; font-family: var(--font-mono); }
+.offline-page { min-height: 100%; }
+.offline-player { min-height: 60dvh; margin-top: 18px; padding: 16px; border: 1px solid var(--line); background: var(--console); color: #fff; }
+.offline-player h2 { margin: 0 0 12px; font-size: 16px; }
 
 @media (max-width: 760px) {
   .site-header { height: 52px; flex-basis: 52px; } .site-header-inner { padding: 0 16px; } .header-note { display: none; } .page-shell { padding: 32px 16px 54px; } .home-shell { padding: 46px 16px 58px; }
