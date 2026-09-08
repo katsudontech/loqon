@@ -60,6 +60,66 @@ describe('service worker media ranges', () => {
     expect(shell.match).toHaveBeenCalled()
   })
 
+  it('keeps online media usable when the project cache is unavailable', async () => {
+    const networkResponse = new Response('network-media', { status: 200 })
+    const network = vi.fn().mockResolvedValue(networkResponse)
+    const source = await readFile(path.join(process.cwd(), 'public/sw.js'), 'utf8')
+    const listeners: Record<string, (event: unknown) => void> = {}
+    const context = {
+      self: {
+        addEventListener: (name: string, handler: (event: unknown) => void) => { listeners[name] = handler },
+        clients: { claim: vi.fn() },
+        location: { origin: 'https://app.test' },
+      },
+      caches: { open: vi.fn().mockRejectedValue(new Error('cache storage unavailable')) },
+      Response,
+      Headers,
+      URL,
+      fetch: network,
+    }
+    vm.runInNewContext(source, context)
+
+    for (const request of [
+      { method: 'GET', url: 'https://cdn.test/project/song.mp3', mode: 'cors', destination: 'audio', headers: new Headers() },
+      { method: 'GET', url: 'https://cdn.test/project/formation.pdf', mode: 'cors', destination: '', headers: new Headers() },
+    ]) {
+      let responsePromise: Promise<Response> | undefined
+      listeners.fetch({ request, respondWith: (value: Promise<Response>) => { responsePromise = value } })
+      expect(await responsePromise).toBe(networkResponse)
+      expect(network).toHaveBeenCalledWith(request)
+    }
+  })
+
+  it('keeps a successful shell asset response when caching it fails', async () => {
+    const networkResponse = new Response('network-script', { status: 200 })
+    const network = vi.fn().mockResolvedValue(networkResponse)
+    const media = { match: vi.fn(async () => undefined) }
+    const shell = { match: vi.fn(async () => undefined), put: vi.fn().mockRejectedValue(new Error('cache is full')) }
+    const source = await readFile(path.join(process.cwd(), 'public/sw.js'), 'utf8')
+    const listeners: Record<string, (event: unknown) => void> = {}
+    const context = {
+      self: {
+        addEventListener: (name: string, handler: (event: unknown) => void) => { listeners[name] = handler },
+        clients: { claim: vi.fn() },
+        location: { origin: 'https://app.test' },
+      },
+      caches: { open: vi.fn(async (name: string) => name.includes('project-media') ? media : shell) },
+      Response,
+      Headers,
+      URL,
+      fetch: network,
+    }
+    vm.runInNewContext(source, context)
+
+    const request = { method: 'GET', url: 'https://app.test/_next/static/chunk.js', mode: 'cors', destination: 'script', headers: new Headers() }
+    let responsePromise: Promise<Response> | undefined
+    listeners.fetch({ request, respondWith: (value: Promise<Response>) => { responsePromise = value } })
+
+    expect(await responsePromise).toBe(networkResponse)
+    expect(network).toHaveBeenCalledWith(request)
+    expect(shell.put).toHaveBeenCalledOnce()
+  })
+
   it('falls back to the cached pathname for an offline navigation', async () => {
     const cached = new Response('select', { status: 200 })
     const shell = { match: vi.fn(async (key: string) => key === '/select' ? cached : undefined), put: vi.fn() }

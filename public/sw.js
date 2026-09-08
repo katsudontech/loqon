@@ -39,9 +39,36 @@ function isDynamicProjectPath(pathname) {
 }
 
 async function shellFallback(request, forceOffline = false) {
-  const shell = await caches.open(SHELL_CACHE)
-  const pathname = new URL(request.url).pathname
-  return (forceOffline ? undefined : await shell.match(pathname)) || (await shell.match('/offline'))
+  try {
+    const shell = await caches.open(SHELL_CACHE)
+    const pathname = new URL(request.url).pathname
+    return (forceOffline ? undefined : await shell.match(pathname)) || (await shell.match('/offline'))
+  } catch {
+    return undefined
+  }
+}
+
+async function cachedMediaResponse(request) {
+  try {
+    const media = await caches.open(MEDIA_CACHE)
+    const cached = await media.match(request.url)
+    if (!cached || cached.status !== 200 || cached.type === 'opaque') return undefined
+    const range = request.headers.get('range')
+    return range ? await rangeResponse(cached, range) : cached
+  } catch {
+    // Cache storage is optional for online playback. A stale or unavailable
+    // cache must never turn a network media request into a failed fetch.
+    return undefined
+  }
+}
+
+async function cacheShellResponse(request, response) {
+  try {
+    const shell = await caches.open(SHELL_CACHE)
+    await shell.put(request, response.clone())
+  } catch {
+    // Keep the network response usable when cache storage is unavailable.
+  }
 }
 
 self.addEventListener('install', (event) => {
@@ -56,20 +83,15 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   if (request.method !== 'GET') return
   event.respondWith((async () => {
-    const media = await caches.open(MEDIA_CACHE)
-    const cached = await media.match(request.url)
-    if (cached && cached.status === 200 && cached.type !== 'opaque') {
-      const range = request.headers.get('range')
-      return range ? rangeResponse(cached, range) : cached
-    }
+    const cached = await cachedMediaResponse(request)
+    if (cached) return cached
 
     if (isNavigation(request)) {
       const dynamicProject = isDynamicProjectPath(new URL(request.url).pathname)
       try {
         const response = await fetch(request)
         if (response.ok && sameOrigin(request) && !dynamicProject) {
-          const shell = await caches.open(SHELL_CACHE)
-          await shell.put(request, response.clone())
+          await cacheShellResponse(request, response)
         }
         return response
       } catch {
@@ -78,12 +100,16 @@ self.addEventListener('fetch', (event) => {
     }
 
     if (sameOrigin(request) && (request.destination === 'script' || request.destination === 'style' || request.destination === 'font' || request.destination === 'image' || new URL(request.url).pathname.startsWith('/_next/static/') || new URL(request.url).pathname.startsWith('/pdfjs/'))) {
-      const shell = await caches.open(SHELL_CACHE)
-      const asset = await shell.match(request)
-      if (asset) return asset
+      try {
+        const shell = await caches.open(SHELL_CACHE)
+        const asset = await shell.match(request)
+        if (asset) return asset
+      } catch {
+        // Fall through to the network when shell caching is unavailable.
+      }
       try {
         const response = await fetch(request)
-        if (response.ok) await shell.put(request, response.clone())
+        if (response.ok) await cacheShellResponse(request, response)
         return response
       } catch {
         return (await shellFallback(request)) || new Response('', { status: 503 })
