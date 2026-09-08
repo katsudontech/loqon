@@ -32,6 +32,7 @@ export default async function PlayerPage({ params }: Props) {
                 </div>
                 <div className="project-header-actions">
                     <ShareButton />
+                    <a href={`/${projectId}/parts`} className="console-link">パート分け</a>
                     <a
                         href={`/${projectId}/edit`}
                         className="console-link"
@@ -49,6 +50,12 @@ export default async function PlayerPage({ params }: Props) {
                 timelineVersion: snapshot.version,
                 timelineUpdatedAt: snapshot.updatedAt,
                 markers,
+                compositionCues: snapshot.compositionCues,
+                practiceParts: snapshot.practiceParts,
+                compositionVersion: snapshot.compositionVersion,
+                compositionUpdatedAt: snapshot.compositionUpdatedAt,
+                practiceVersion: snapshot.practiceVersion,
+                practiceUpdatedAt: snapshot.practiceUpdatedAt,
             }} />
 
             {/* Player Container takes remaining space */}
@@ -57,6 +64,8 @@ export default async function PlayerPage({ params }: Props) {
                     audioUrl={project.audio_url}
                     pdfUrl={project.pdf_url}
                     markers={markers}
+                    compositionCues={snapshot.compositionCues}
+                    practiceParts={snapshot.practiceParts}
                 />
             </div>
         </div>

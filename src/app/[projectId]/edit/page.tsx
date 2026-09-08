@@ -26,12 +26,9 @@ export default async function EditPage({ params }: Props) {
                     <h1>{project.title || '名称未設定プロジェクト'}</h1>
                     <span className="project-header-id">EDITOR / {projectId.slice(0, 8)}</span>
                 </div>
-                <Link
-                    href={`/${projectId}/settings`}
-                    className="console-link"
-                >
+                <div className="project-header-actions"><Link href={`/${projectId}/parts`} className="console-link">パート分け</Link><Link href={`/${projectId}/settings`} className="console-link">
                     <svg className="console-icon" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" /><path d="m19 13.5 1.2 1-.1 1.8-1.7 1-1.5-.6a8 8 0 0 1-1.3.8l-.4 1.6-1.6.7-1.4-1a8 8 0 0 1-1.6 0l-1.4 1-1.6-.7-.4-1.6a8 8 0 0 1-1.3-.8l-1.5.6-1.7-1 .1-1.8 1.2-1a8 8 0 0 1 0-1.7l-1.2-1 .1-1.8 1.7-1 1.5.6a8 8 0 0 1 1.3-.8l.4-1.6 1.6-.7 1.4 1a8 8 0 0 1 1.6 0l1.4-1 1.6.7.4 1.6a8 8 0 0 1 1.3.8l1.5-.6 1.7 1-.1 1.8-1.2 1a8 8 0 0 1 0 1.7Z" /></svg> <span className="console-label">設定</span>
-                </Link>
+                </Link></div>
             </div>
 
             <div className="console-content">
@@ -39,8 +36,11 @@ export default async function EditPage({ params }: Props) {
                     audioUrl={audioUrl}
                     pdfUrl={pdfUrl}
                     initialMarkers={timeline.markers}
-                    initialVersion={timeline.version}
+                    initialVersion={timeline.compositionVersion}
                     initialUpdatedAt={timeline.updatedAt}
+                    initialCues={timeline.compositionCues}
+                    compositionVersion={timeline.compositionVersion}
+                    compositionUpdatedAt={timeline.compositionUpdatedAt}
                     projectId={projectId}
                 />
             </div>

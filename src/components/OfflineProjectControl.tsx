@@ -51,7 +51,7 @@ export function OfflineProjectControl({ project }: Props) {
     return () => { window.clearTimeout(timer); window.removeEventListener('offline', onOffline); window.removeEventListener('online', onOnline) }
   // inspect intentionally captures the current project snapshot for this run.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.id, project.audioUrl, project.pdfUrl, project.timelineVersion, project.timelineUpdatedAt, project.title])
+  }, [project.id, project.audioUrl, project.pdfUrl, project.timelineVersion, project.timelineUpdatedAt, project.compositionVersion, project.compositionUpdatedAt, project.practiceVersion, project.practiceUpdatedAt, project.title])
 
   const save = async () => {
     const abort = new AbortController()

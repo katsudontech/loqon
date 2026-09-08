@@ -17,10 +17,23 @@ type Props = {
     audioUrl: string
     pdfUrl: string
     markers: Marker[]
+    compositionCues?: { id: string; time: number; page: number; name?: string }[]
+    practiceParts?: { id: string; startTime: number; endTime: number; name?: string }[]
 }
 
-export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
+export function derivePlayerTimeline(compositionCues: Props['compositionCues'] = [], practiceParts: Props['practiceParts'] = [], legacyMarkers: Marker[] = []) {
+    const cues = compositionCues.length ? compositionCues.map((cue) => ({ id: cue.id, time: cue.time, page: cue.page, name: cue.name })) : legacyMarkers
+    const parts = practiceParts.length ? practiceParts.map((part) => ({ id: part.id, time: part.startTime, end_time: part.endTime > part.startTime ? part.endTime : undefined, page: [...cues].reverse().find((cue) => cue.time <= part.startTime)?.page ?? 1, name: part.name })) : legacyMarkers
+    return { cues, parts }
+}
+
+export const PlayerContainer = ({ audioUrl, pdfUrl, markers: legacyMarkers, compositionCues = [], practiceParts = [] }: Props) => {
     const { audioRef, play, ...audioState } = useAudioPlayer()
+    const playerTimeline = useMemo(() => derivePlayerTimeline(compositionCues, practiceParts, legacyMarkers), [compositionCues, legacyMarkers, practiceParts])
+    const compositionMarkers = playerTimeline.cues
+    // Practice controls are driven only by ranges. Page is derived from the
+    // composition timeline so same-page parts remain distinct.
+    const markers = playerTimeline.parts
 
     // モード管理: 'full' = 全体再生, 'part' = パート練習
     const [mode, setMode] = useState<'full' | 'part'>('part')
@@ -40,18 +53,18 @@ export const PlayerContainer = ({ audioUrl, pdfUrl, markers }: Props) => {
 
     // 現在の再生時間に合わせて表示するPDFページを導出する
     const currentPage = useMemo(() => {
-        if (markers.length === 0) return 1
+        if (compositionMarkers.length === 0) return 1
         // currentTime 以下で最も時間が大きいマーカーを探す
-        let activePage = markers[0].page;
-        for (let i = 0; i < markers.length; i++) {
-            if (audioState.currentTime >= markers[i].time) {
-                activePage = markers[i].page
+        let activePage = compositionMarkers[0].page;
+        for (let i = 0; i < compositionMarkers.length; i++) {
+            if (audioState.currentTime >= compositionMarkers[i].time) {
+                activePage = compositionMarkers[i].page
             } else {
                 break; // 時間順に並んでいる前提なので、超えたらそこで終了
             }
         }
         return activePage
-    }, [audioState.currentTime, markers])
+    }, [audioState.currentTime, compositionMarkers])
 
     // ===== パート練習（A-Bリピート）のロジック =====
     useEffect(() => {

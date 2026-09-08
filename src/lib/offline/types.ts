@@ -1,4 +1,4 @@
-import type { Marker } from '@/lib/timeline'
+import type { Marker, CompositionCue, PracticePart } from '@/lib/timeline'
 
 export type OfflineProject = {
   id: string
@@ -10,6 +10,12 @@ export type OfflineProject = {
   timelineVersion: number
   timelineUpdatedAt: string | null
   markers: Marker[]
+  compositionCues?: CompositionCue[]
+  practiceParts?: PracticePart[]
+  compositionVersion?: number
+  compositionUpdatedAt?: string | null
+  practiceVersion?: number
+  practiceUpdatedAt?: string | null
   appAssetUrls: string[]
   savedAt: number
 }

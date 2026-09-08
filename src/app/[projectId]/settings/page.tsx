@@ -27,6 +27,7 @@ export default async function SettingsPage({ params }: Props) {
                 </Link>
             </div>
 
+            <p className="alert alert-warning mt-4" role="note">音源やPDFを置き換えると、記録済みの時刻やページ範囲が合わなくなる場合があります。置き換え後に構成・パート分けを確認し、必要なら記録を修正してください。</p>
             <div className="mt-8">
                 <ProjectForm project={project} />
             </div>

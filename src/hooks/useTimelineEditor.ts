@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { addMarker, classifyTimelineError, convertMarkersToDbPayload, deleteMarkerById, markersEqual, normalizeMarkers, resetMarkers, updateMarkerById, type LegacyMarker, type Marker } from '@/lib/timeline'
+import { addMarker, classifyTimelineError, convertMarkersToDbPayload, deleteMarkerById, markersEqual, normalizeMarkers, resetMarkers, updateMarkerById, validateMarkers, type LegacyMarker, type Marker, type CompositionCue } from '@/lib/timeline'
 
 type Options = { numPages?: number | null; initialVersion?: number; initialUpdatedAt?: string | null }
 export const useTimelineEditor = (initialMarkers: readonly LegacyMarker[] = [], options: Options = {}) => {
@@ -11,6 +11,7 @@ export const useTimelineEditor = (initialMarkers: readonly LegacyMarker[] = [], 
     // batch several calls before rendering, so reading only `markers` can
     // otherwise drop an earlier valid marker from a later update.
     const markersRef = useRef<Marker[]>(normalizedInitial)
+    const previousMarkersRef = useRef<Marker[] | null>(null)
     const [baseline, setBaseline] = useState<Marker[]>(normalizedInitial)
     const [timelineVersion, setTimelineVersion] = useState(options.initialVersion ?? 0)
     const [validationError, setValidationError] = useState('')
@@ -22,6 +23,7 @@ export const useTimelineEditor = (initialMarkers: readonly LegacyMarker[] = [], 
             // the preview) on the return value. Errors thrown inside a
             // functional setState updater are not catchable by the caller.
             const nextMarkers = addMarker(markersRef.current, time, page, options.numPages)
+            previousMarkersRef.current = markersRef.current
             markersRef.current = nextMarkers
             setMarkers(nextMarkers)
             setValidationError('')
@@ -69,5 +71,29 @@ export const useTimelineEditor = (initialMarkers: readonly LegacyMarker[] = [], 
         const nextVersion = typeof data === 'number' ? data : timelineVersion + 1
         setTimelineVersion(nextVersion); setBaseline(markers); setValidationError(''); return nextVersion
     }, [markers, options.numPages, timelineVersion])
-    return { markers, dirty, baseline, timelineVersion, validationError, recordMarker, deleteMarker, updateMarkerName, clearMarkers, saveMarkers, replaceMarkersFromRemote, restoreMarkers, setValidationError }
+    const saveComposition = useCallback(async (projectId: string, version: number, duration: number, numPages?: number | null, force = false) => {
+        if (!Number.isFinite(duration) || duration <= 0) throw new Error('音源の長さを取得できないため保存できません。')
+        validateMarkers(markers, duration, numPages)
+        const cues: CompositionCue[] = markers.map((marker) => ({ id: marker.id, time: marker.time, page: marker.page, name: marker.name }))
+        const { data, error } = await supabase.rpc('replace_composition_cues', {
+            p_project_id: projectId,
+            p_cues: cues.map((cue) => ({ id: cue.id, start_time: cue.time, page_number: cue.page, name: cue.name ?? null })),
+            p_expected_version: version,
+            p_duration: duration,
+            p_num_pages: numPages ?? null,
+            p_force: force,
+        })
+        if (error) throw classifyTimelineError(error)
+        const nextVersion = typeof data === 'number' ? data : version + 1
+        setTimelineVersion(nextVersion); setBaseline(markers); setValidationError(''); return nextVersion
+    }, [markers])
+    const undoLast = useCallback(() => {
+        if (!previousMarkersRef.current) return false
+        markersRef.current = previousMarkersRef.current
+        setMarkers(previousMarkersRef.current)
+        previousMarkersRef.current = null
+        setValidationError('')
+        return true
+    }, [])
+    return { markers, dirty, baseline, timelineVersion, validationError, recordMarker, deleteMarker, updateMarkerName, clearMarkers, saveMarkers, saveComposition, undoLast, replaceMarkersFromRemote, restoreMarkers, setValidationError }
 }

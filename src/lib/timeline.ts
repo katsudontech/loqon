@@ -12,7 +12,31 @@ export type Marker = {
     text?: string
     name?: string
 }
-export type LegacyMarker = Omit<Marker, "id"> & { id?: string | null }
+/** A composition/PDF switch. This is deliberately independent from practice parts. */
+export type CompositionCue = {
+    id: string
+    time: number
+    page: number
+    name?: string
+}
+/** A practice range. A part may begin at the same time/page as another cue. */
+export type PracticePart = {
+    id: string
+    startTime: number
+    endTime: number
+    name?: string
+    startPage?: number
+    endPage?: number
+}
+export type ProjectTimeline = {
+    compositionCues: CompositionCue[]
+    practiceParts: PracticePart[]
+    compositionVersion: number
+    compositionUpdatedAt: string | null
+    practiceVersion: number
+    practiceUpdatedAt: string | null
+}
+export type LegacyMarker = Omit<Marker, "id"> & { id?: string | null; end_time?: number }
 export type PlayerMarker = Marker & { end_time?: number }
 export type TimelineDraft = {
     schemaVersion: number
@@ -20,7 +44,9 @@ export type TimelineDraft = {
     baseTimelineVersion: number
     baseUpdatedAt: string | null
     savedAt: string
-    markers: Marker[]
+  markers: Marker[]
+  baseCompositionVersion?: number
+  baseCompositionUpdatedAt?: string | null
 }
 type TimelineMarkerRow = Database['public']['Tables']['timeline_markers']['Row']
 type TimelineMarkerInsert = Database['public']['Tables']['timeline_markers']['Insert']
@@ -153,6 +179,151 @@ export function parseTimelineDraft(raw: string | null, projectId: string): Timel
 }
 export function serializeTimelineDraft(draft: Omit<TimelineDraft, 'schemaVersion'>): string { return JSON.stringify({ ...draft, schemaVersion: DRAFT_SCHEMA_VERSION }) }
 export function markersEqual(left: readonly Marker[], right: readonly Marker[]): boolean { return JSON.stringify(left) === JSON.stringify(right) }
+
+/**
+ * Legacy read-time migration. Composition only keeps the first cue at a time
+ * and actual page changes; practice parts intentionally keep every legacy row,
+ * including same-page rows and their names.
+ */
+export function migrateLegacyMarkers(
+    input: readonly LegacyMarker[] | null | undefined,
+    duration?: number,
+    numPages?: number | null,
+): Pick<ProjectTimeline, 'compositionCues' | 'practiceParts'> {
+    const valid = (input ?? []).filter((marker) => validMarkerShape(marker, numPages))
+        .map((marker, index) => ({
+            id: isMarkerId(marker.id) ? marker.id : createMarkerId(),
+            time: marker.time!,
+            page: marker.page!,
+            name: normalizeMarkerName(marker.name),
+            endTime: Number.isFinite(marker.end_time) ? marker.end_time : undefined,
+            index,
+        }))
+        .sort((a, b) => a.time - b.time || a.index - b.index)
+    const compositionCues: CompositionCue[] = []
+    for (const marker of valid) {
+        const previous = compositionCues.at(-1)
+        if (previous?.time === marker.time || previous?.page === marker.page) {
+            if (previous && !previous.name && marker.name) previous.name = marker.name
+            continue
+        }
+        compositionCues.push({ id: marker.id, time: marker.time, page: marker.page, name: marker.name })
+    }
+    if (!compositionCues[0] || compositionCues[0].time !== 0 || compositionCues[0].page !== 1) {
+        compositionCues.unshift({ id: createMarkerId(), time: 0, page: 1 })
+    }
+    // A legacy table could contain multiple rows at one time. They cannot be
+    // represented as positive adjacent intervals, so retain the earliest row
+    // deterministically and its first non-empty name, then derive boundaries.
+    const grouped = valid.reduce<typeof valid>((all, marker) => {
+        const previous = all.at(-1)
+        if (previous?.time === marker.time) {
+            if (!previous.name && marker.name) previous.name = marker.name
+            previous.endTime = Math.max(previous.endTime ?? 0, marker.endTime ?? 0)
+            return all
+        }
+        all.push({ ...marker })
+        return all
+    }, [])
+    const practiceParts: PracticePart[] = grouped.map((marker, index) => ({
+        id: marker.id,
+        startTime: marker.time,
+        endTime: index + 1 < grouped.length ? grouped[index + 1].time : (duration ?? marker.endTime ?? 0),
+        name: marker.name,
+    }))
+    if (practiceParts.length === 0) practiceParts.push({ id: createMarkerId(), startTime: 0, endTime: duration ?? 0, name: '全体' })
+    return { compositionCues, practiceParts }
+}
+
+export function normalizeCompositionCues(input: readonly LegacyMarker[] | readonly CompositionCue[] | null | undefined, numPages?: number | null): CompositionCue[] {
+    const legacy: LegacyMarker[] = (input ?? []).map((item) => 'startTime' in item
+        ? { id: item.id, time: item.startTime, page: item.page, name: item.name }
+        : item as LegacyMarker) as LegacyMarker[]
+    return migrateLegacyMarkers(legacy, undefined, numPages).compositionCues
+}
+
+export function normalizePracticeParts(
+    input: readonly PracticePart[] | null | undefined,
+    duration: number,
+): PracticePart[] {
+    const parts = (input ?? []).filter((part) => isMarkerId(part.id) && Number.isFinite(part.startTime) && Number.isFinite(part.endTime))
+        .map((part) => ({ ...part, startTime: Math.max(0, part.startTime), endTime: Math.min(duration, part.endTime), name: normalizeMarkerName(part.name) }))
+        .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id))
+    const grouped: PracticePart[] = []
+    for (const part of parts) {
+        const previous = grouped.at(-1)
+        if (previous?.startTime === part.startTime) { if (!previous.name && part.name) previous.name = part.name; previous.endTime = Math.max(previous.endTime, part.endTime); continue }
+        grouped.push({ ...part })
+    }
+    const finalDuration = duration > 0 ? duration : Math.max(0, ...grouped.map((part) => part.endTime))
+    const partition = grouped.map((part, index) => ({ ...part, endTime: index + 1 < grouped.length ? grouped[index + 1].startTime : finalDuration }))
+    return partition.length ? partition : [{ id: createMarkerId(), startTime: 0, endTime: duration, name: '全体' }]
+}
+
+export function validatePracticeParts(parts: readonly PracticePart[], duration: number): void {
+    if (!Number.isFinite(duration) || duration <= 0) throw new TimelineValidationError('音源の長さを取得できないため保存できません。')
+    if (parts.length === 0) throw new TimelineValidationError('パートを1つ以上設定してください')
+    const ids = new Set<string>(); let previous = -1
+    for (const [index, part] of parts.entries()) {
+        if (!isMarkerId(part.id) || ids.has(part.id)) throw new TimelineValidationError('パートIDが不正または重複しています')
+        ids.add(part.id)
+        if (!Number.isFinite(part.startTime) || !Number.isFinite(part.endTime) || part.startTime < 0 || part.endTime > duration || part.endTime <= part.startTime) throw new TimelineValidationError('パートの開始・終了時刻が不正です')
+        if ((part.startPage != null && (!Number.isInteger(part.startPage) || part.startPage < 1)) || (part.endPage != null && (!Number.isInteger(part.endPage) || part.endPage < 1))) throw new TimelineValidationError('パートのPDFページ範囲が不正です')
+        if (part.startTime <= previous) throw new TimelineValidationError('パートの開始時刻は重複せず昇順にしてください')
+        if (index === 0 && part.startTime !== 0) throw new TimelineValidationError('最初のパートは0秒から開始してください')
+        if (index > 0 && parts[index - 1].endTime !== part.startTime) throw new TimelineValidationError('パートは隙間なく連続している必要があります')
+        previous = part.startTime
+    }
+    if (parts.at(-1)?.endTime !== duration) throw new TimelineValidationError('最後のパートは音源の終了まで含めてください')
+}
+
+export function addPracticePart(parts: readonly PracticePart[], startTime: number, endTime: number, name?: string): PracticePart[] {
+    const next = [...parts, { id: createMarkerId(), startTime, endTime, name: normalizeMarkerName(name) }]
+    validatePracticeParts(next.sort((a, b) => a.startTime - b.startTime), Math.max(endTime, ...next.map((part) => part.endTime)))
+    return next.sort((a, b) => a.startTime - b.startTime)
+}
+
+/** Split the containing interval at a timestamp, updating both neighbors. */
+export function splitPracticePart(parts: readonly PracticePart[], time: number, name?: string): PracticePart[] {
+    const containing = parts.find((part) => part.startTime < time && time < part.endTime)
+    if (!containing) throw new TimelineValidationError('現在位置に分けられるパートがありません')
+    return parts.flatMap((part) => part.id === containing.id
+        ? [{ ...part, endTime: time }, { id: createMarkerId(), startTime: time, endTime: containing.endTime, name: normalizeMarkerName(name) ?? `パート${parts.length + 1}` }]
+        : [part])
+}
+
+/** Remove a boundary and merge its two adjacent intervals, keeping earlier name. */
+export function removePracticeBoundary(parts: readonly PracticePart[], id: string): PracticePart[] {
+    const index = parts.findIndex((part) => part.id === id)
+    if (index <= 0) return [...parts]
+    const earlier = parts[index - 1]
+    const removed = parts[index]
+    return parts.map((part) => part.id === earlier.id ? { ...part, endTime: removed.endTime } : part).filter((part) => part.id !== id)
+}
+
+export function mergePracticePart(parts: readonly PracticePart[], id: string): PracticePart[] {
+    return removePracticeBoundary(parts, id)
+}
+
+export function convertCompositionCuesToDbPayload(cues: readonly CompositionCue[], projectId: string): Database['public']['Tables']['composition_cues']['Insert'][] {
+    return cues.map((cue) => ({ id: cue.id, project_id: projectId, page_number: cue.page, start_time: cue.time, name: normalizeMarkerName(cue.name) ?? null }))
+}
+
+export function convertPracticePartsToDbPayload(parts: readonly PracticePart[], projectId: string): Database['public']['Tables']['practice_parts']['Insert'][] {
+    return parts.map((part) => ({ id: part.id, project_id: projectId, start_time: part.startTime, end_time: part.endTime, start_page: part.startPage ?? null, end_page: part.endPage ?? null, name: normalizeMarkerName(part.name) ?? null }))
+}
+
+export function convertDbRowsToCompositionCues(rows: readonly Database['public']['Tables']['composition_cues']['Row'][]): CompositionCue[] {
+    return rows.filter((row) => Number.isFinite(row.start_time) && Number.isInteger(row.page_number) && row.page_number >= 1)
+        .sort((a, b) => a.start_time - b.start_time || a.id.localeCompare(b.id))
+        .map((row) => ({ id: row.id, time: row.start_time, page: row.page_number, name: normalizeMarkerName(row.name) }))
+}
+
+export function convertDbRowsToPracticeParts(rows: readonly Database['public']['Tables']['practice_parts']['Row'][]): PracticePart[] {
+    return rows.filter((row) => Number.isFinite(row.start_time) && Number.isFinite(row.end_time))
+        .sort((a, b) => a.start_time - b.start_time || a.id.localeCompare(b.id))
+        .map((row) => ({ id: row.id, startTime: row.start_time, endTime: row.end_time, name: normalizeMarkerName(row.name) }))
+}
 export function shouldOfferDraftRestore(draft: TimelineDraft | null, baseVersion: number, baseUpdatedAt: string | null, baseMarkers: readonly Marker[]): boolean {
     if (!draft || markersEqual(draft.markers, baseMarkers)) return false
     const draftSaved = Date.parse(draft.savedAt); const loadedBase = baseUpdatedAt ? Date.parse(baseUpdatedAt) : NaN

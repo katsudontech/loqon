@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+.timeline-rail { position: relative; min-height: 14px; }
+.timeline-rail-cue, .timeline-rail-boundary { position: absolute; top: -2px; height: 18px; width: 3px; border-radius: 2px; }
+.timeline-rail-cue { background: #22d3ee; }
+.timeline-rail-boundary { background: #fbbf24; }
+
 :root {
   --ink: #1b1d1c; --muted: #6d706d; --muted-light: #929590; --paper: #fff;
   --canvas: #eeece7; --line: #d3d2cd; --line-strong: #b8b8b1;

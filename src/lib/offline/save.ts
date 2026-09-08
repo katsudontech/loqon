@@ -159,6 +159,12 @@ async function saveProjectInternal(input: OfflineProjectInput, signal?: AbortSig
   const revision = compareOfflineRevision(old, input)
   const result: OfflineProject = {
     ...input,
+    compositionCues: input.compositionCues ?? old?.compositionCues ?? [],
+    practiceParts: input.practiceParts ?? old?.practiceParts ?? [],
+    compositionVersion: input.compositionVersion ?? old?.compositionVersion ?? input.timelineVersion,
+    compositionUpdatedAt: input.compositionUpdatedAt ?? old?.compositionUpdatedAt ?? input.timelineUpdatedAt,
+    practiceVersion: input.practiceVersion ?? old?.practiceVersion ?? input.timelineVersion,
+    practiceUpdatedAt: input.practiceUpdatedAt ?? old?.practiceUpdatedAt ?? input.timelineUpdatedAt,
     audioBytes: input.audioBytes ?? old?.audioBytes ?? null,
     pdfBytes: input.pdfBytes ?? old?.pdfBytes ?? null,
     appAssetUrls: input.appAssetUrls ?? old?.appAssetUrls ?? [],

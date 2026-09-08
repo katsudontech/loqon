@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { addMarker, classifyTimelineError, convertDbRowsToMarkers, convertDbRowsToPlayerMarkers, convertMarkersToDbPayload, createMarkerId, isMarkerId, normalizeMarkers, parseTimelineDraft, serializeTimelineDraft, shouldOfferDraftRestore, type Marker } from '@/lib/timeline'
 import { getPartBounds, shiftPartIndices, shouldLoopAt } from '@/lib/partLoop'
-import { TimelineConflictError, deleteMarkerById, resetMarkers, updateMarkerById } from '@/lib/timeline'
+import { TimelineConflictError, deleteMarkerById, resetMarkers, updateMarkerById, migrateLegacyMarkers, validatePracticeParts } from '@/lib/timeline'
 
 const id = (value: string) => value
 const base: Marker = { id: id('00000000-0000-4000-8000-000000000001'), time: 0, page: 1 }
@@ -74,6 +74,32 @@ describe('timeline invariants', () => {
 })
 
 describe('drafts and part bounds', () => {
+  it('separates legacy composition changes from every practice boundary', () => {
+    const rows = [
+      { id: '00000000-0000-4000-8000-000000000010', time: 0, page: 1, name: 'Intro' },
+      { id: '00000000-0000-4000-8000-000000000011', time: 10, page: 1, name: 'A' },
+      { id: '00000000-0000-4000-8000-000000000012', time: 20, page: 2, name: 'B' },
+      { id: '00000000-0000-4000-8000-000000000013', time: 30, page: 2, name: 'C' },
+    ]
+    const result = migrateLegacyMarkers(rows, 40)
+    expect(result.compositionCues.map((cue) => [cue.time, cue.page])).toEqual([[0, 1], [20, 2]])
+    expect(result.practiceParts.map((part) => part.startTime)).toEqual([0, 10, 20, 30])
+    expect(result.practiceParts.map((part) => part.name)).toEqual(['Intro', 'A', 'B', 'C'])
+    const duplicate = migrateLegacyMarkers([{ ...rows[0], id: '00000000-0000-4000-8000-000000000014', name: 'Intro 2', end_time: 5 }, { ...rows[0], end_time: 10 }], 10)
+    expect(duplicate.practiceParts).toHaveLength(1)
+    expect(duplicate.practiceParts[0].name).toBe('Intro 2')
+  })
+
+  it('rejects duplicate/zero-length practice ranges while allowing same-page splits', () => {
+    const parts = [
+      { id: '00000000-0000-4000-8000-000000000010', startTime: 0, endTime: 10 },
+      { id: '00000000-0000-4000-8000-000000000011', startTime: 10, endTime: 20 },
+    ]
+    expect(() => validatePracticeParts(parts, 20)).not.toThrow()
+    expect(() => validatePracticeParts([{ ...parts[0], endTime: 0 }], 20)).toThrow()
+    expect(() => validatePracticeParts([{ ...parts[0] }, { ...parts[1], startTime: 0 }], 20)).toThrow()
+  })
+
   it('round trips drafts and rejects stale or identical candidates', () => {
     const draft = { projectId: 'project-1', baseTimelineVersion: 2, baseUpdatedAt: '2026-01-01T00:00:00Z', savedAt: '2026-01-01T00:01:00Z', markers: [base] }
     const parsed = parseTimelineDraft(serializeTimelineDraft(draft), 'project-1')

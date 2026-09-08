@@ -20,4 +20,10 @@ describe('offline revision comparison', () => {
     expect(compareOfflineRevision(saved, base).kind).toBe('same')
     expect(compareOfflineRevision(saved, { ...base, title: '別名' }).title).toBe(true)
   })
+
+  it('detects composition-only and practice-only updates without treating media as changed', () => {
+    const saved = { ...base, appAssetUrls: [], savedAt: 1, compositionVersion: 1, compositionUpdatedAt: 'a', practiceVersion: 1, practiceUpdatedAt: 'a' }
+    expect(compareOfflineRevision(saved, { ...base, compositionVersion: 2, compositionUpdatedAt: 'b' })).toMatchObject({ kind: 'changed', media: { audio: false, pdf: false } })
+    expect(compareOfflineRevision(saved, { ...base, practiceVersion: 2, practiceUpdatedAt: 'b' })).toMatchObject({ kind: 'changed', media: { audio: false, pdf: false } })
+  })
 })

@@ -19,6 +19,10 @@ export interface Database {
           created_at: string
           timeline_version: number
           timeline_updated_at: string
+          composition_version: number
+          composition_updated_at: string
+          practice_version: number
+          practice_updated_at: string
         }
         Insert: {
           id?: string
@@ -29,6 +33,10 @@ export interface Database {
           created_at?: string
           timeline_version?: number
           timeline_updated_at?: string
+          composition_version?: number
+          composition_updated_at?: string
+          practice_version?: number
+          practice_updated_at?: string
         }
         Update: {
           id?: string
@@ -39,6 +47,10 @@ export interface Database {
           created_at?: string
           timeline_version?: number
           timeline_updated_at?: string
+          composition_version?: number
+          composition_updated_at?: string
+          practice_version?: number
+          practice_updated_at?: string
         }
         Relationships: []
       }
@@ -80,6 +92,18 @@ export interface Database {
           },
         ]
       }
+      composition_cues: {
+        Row: { id: string; project_id: string; page_number: number; start_time: number; name: string | null; created_at: string }
+        Insert: { id?: string; project_id: string; page_number: number; start_time: number; name?: string | null; created_at?: string }
+        Update: { id?: string; project_id?: string; page_number?: number; start_time?: number; name?: string | null; created_at?: string }
+        Relationships: []
+      }
+      practice_parts: {
+        Row: { id: string; project_id: string; start_time: number; end_time: number; start_page: number | null; end_page: number | null; name: string | null; created_at: string }
+        Insert: { id?: string; project_id: string; start_time: number; end_time: number; start_page?: number | null; end_page?: number | null; name?: string | null; created_at?: string }
+        Update: { id?: string; project_id?: string; start_time?: number; end_time?: number; start_page?: number | null; end_page?: number | null; name?: string | null; created_at?: string }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -115,6 +139,18 @@ export interface Database {
       get_public_timeline_snapshot: {
         Args: { p_project_id: string }
         Returns: Json
+      }
+      get_public_project_timeline: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
+      replace_composition_cues: {
+        Args: { p_project_id: string; p_cues: Json; p_expected_version: number; p_duration: number; p_num_pages?: number | null; p_force?: boolean }
+        Returns: number
+      }
+      replace_practice_parts: {
+        Args: { p_project_id: string; p_parts: Json; p_expected_version: number; p_duration: number; p_force?: boolean }
+        Returns: number
       }
       is_legacy_project_storage_url: {
         Args: {
